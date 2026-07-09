@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Http\Controllers\CallCenter;
+
+use App\Http\Controllers\Controller;
+use App\Models\CallCenter\SmsLog;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class SmsLogController extends Controller
+{
+    public function index(Request $request)
+    {
+        $logs = SmsLog::with('patient', 'agent')
+            ->when($request->status, fn($q, $v) => $q->where('status', $v))
+            ->when($request->patient_id, fn($q, $v) => $q->where('patient_id', $v))
+            ->latest()
+            ->paginate(30);
+
+        return view('callcenter.sms.index', compact('logs'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'patient_id'   => 'required|exists:users,id',
+            'phone_number' => 'required|string|max:30',
+            'message'      => 'required|string|max:500',
+            'task_id'      => 'nullable|exists:tasks,id',
+            'template_key' => 'nullable|string',
+        ]);
+
+        $sms = SmsLog::create([
+            'patient_id'   => $request->patient_id,
+            'agent_id'     => Auth::id(),
+            'task_id'      => $request->task_id,
+            'phone_number' => $request->phone_number,
+            'message'      => $request->message,
+            'template_key' => $request->template_key,
+            'status'       => 'pending',
+            'sent_at'      => now(),
+        ]);
+
+        // TODO: integrate real SMS gateway here
+        $sms->update(['status' => 'sent']);
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'sms' => $sms]);
+        }
+
+        return back()->with('success', 'SMS sent successfully.');
+    }
+
+    public function resend(Request $request, SmsLog $sms)
+    {
+        $sms->increment('resend_count');
+        $sms->update(['status' => 'sent', 'sent_at' => now()]);
+
+        // TODO: integrate real SMS gateway here
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'resend_count' => $sms->resend_count]);
+        }
+
+        return back()->with('success', 'SMS resent.');
+    }
+}
