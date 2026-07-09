@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedCRM Pro — Call Center Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* ======================================================
+   FREST DESIGN SYSTEM — EXACT TOKEN REPLICATION
+   Primary: #5a8dee | Font: IBM Plex Sans + Rubik
+   Light, clean, minimal — Pixinvent style
+   ====================================================== */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  /* Core Frest palette */
+  --primary:#5a8dee;
+  --primary-light:rgba(90,141,238,0.12);
+  --primary-mid:rgba(90,141,238,0.2);
+  --secondary:#475f7b;
+  --success:#39da8a;
+  --success-light:rgba(57,218,138,0.12);
+  --danger:#ff5b5b;
+  --danger-light:rgba(255,91,91,0.12);
+  --warning:#fdac41;
+  --warning-light:rgba(253,172,65,0.12);
+  --info:#00cfdd;
+  --info-light:rgba(0,207,221,0.12);
+  --purple:#7367f0;
+  --purple-light:rgba(115,103,240,0.12);
+
+  /* Layout */
+  --body-bg:#f8f7fa;
+  --sidebar-bg:#fff;
+  --card-bg:#fff;
+  --topbar-bg:#fff;
+
+  /* Borders & shadows */
+  --border:#ebebeb;
+  --border2:#dde3ec;
+  --shadow:0 4px 24px 0 rgba(34,41,47,0.10);
+  --shadow-sm:0 2px 8px 0 rgba(34,41,47,0.08);
+  --shadow-card:0 4px 24px 0 rgba(34,41,47,0.08);
+
+  /* Text */
+  --text:#475f7b;
+  --text-dark:#2c3e5d;
+  --text-muted:#828d99;
+  --text-light:#adb5bd;
+
+  /* Typography */
+  --font:'IBM Plex Sans',sans-serif;
+  --font2:'Rubik',sans-serif;
+
+  /* Radii */
+  --r:0.357rem;
+  --r2:0.5rem;
+  --r3:0.75rem;
+}
+
+body{background:var(--body-bg);color:var(--text);font-family:var(--font);font-size:13px;overflow:hidden;height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#dee2e6;border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:#adb5bd}
+
+/* ======== LAYOUT ======== */
+.app{display:flex;height:100vh}
+.sidebar{width:260px;background:var(--sidebar-bg);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;transition:all 0.3s}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:62px;background:var(--topbar-bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 20px;flex-shrink:0;box-shadow:var(--shadow-sm)}
+.content{flex:1;overflow:hidden;display:flex;flex-direction:column}
+
+/* ======== SIDEBAR ======== */
+.sb-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sb-logo .brand{font-family:var(--font2);font-size:20px;font-weight:700;color:var(--text-dark);letter-spacing:-0.3px}
+.sb-logo .brand span{color:var(--primary)}
+.sb-logo .brand-icon{width:36px;height:36px;background:var(--primary);border-radius:var(--r2);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0}
+
+.sb-agent{margin:16px 16px 4px;background:var(--body-bg);border:1px solid var(--border);border-radius:var(--r2);padding:14px 14px 12px}
+.sb-agent .ag-row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.sb-agent .av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--purple));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.sb-agent .name{font-weight:600;font-size:13px;color:var(--text-dark);line-height:1.2}
+.sb-agent .role{font-size:11px;color:var(--text-muted);margin-top:2px}
+.sb-agent .ag-badges{display:flex;gap:6px;flex-wrap:wrap}
+.status-dot{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--success);font-weight:500}
+.status-dot::before{content:'';width:7px;height:7px;background:var(--success);border-radius:50%;display:inline-block;box-shadow:0 0 0 2px rgba(57,218,138,0.25)}
+
+.sb-nav{padding:8px 14px;flex:1}
+.sb-section{font-size:10px;font-weight:600;letter-spacing:1px;color:var(--text-light);text-transform:uppercase;padding:14px 6px 6px;margin-top:2px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--r2);cursor:pointer;color:var(--text);transition:all 0.2s;margin-bottom:2px;font-size:13px;font-weight:500;position:relative;line-height:1}
+.sb-item:hover{background:var(--primary-light);color:var(--primary)}
+.sb-item.active{background:var(--primary-light);color:var(--primary);font-weight:600}
+.sb-item.active i{color:var(--primary)}
+.sb-item i{width:16px;text-align:center;font-size:13px;color:var(--text-muted);transition:color 0.2s;flex-shrink:0}
+.sb-item:hover i{color:var(--primary)}
+.sb-badge{margin-left:auto;background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;min-width:20px;text-align:center;line-height:1.6}
+.sb-badge.danger{background:var(--danger)}
+.sb-badge.warning{background:var(--warning);color:#fff}
+.sb-badge.success{background:var(--success)}
+.sb-badge.info{background:var(--info)}
+.sb-badge.light{background:var(--body-bg);color:var(--text-muted);border:1px solid var(--border)}
+
+/* ======== TOPBAR ======== */
+.tb-search{flex:1;max-width:380px;position:relative}
+.tb-search input{width:100%;background:var(--body-bg);border:1px solid var(--border);border-radius:var(--r2);padding:9px 14px 9px 38px;color:var(--text-dark);font-size:13px;font-family:var(--font);outline:none;transition:border-color 0.2s,box-shadow 0.2s}
+.tb-search input::placeholder{color:var(--text-light)}
+.tb-search input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(90,141,238,0.15)}
+.tb-search i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px}
+
+.tb-kpis{display:flex;gap:6px;margin-left:auto}
+.kpi-chip{display:flex;align-items:center;gap:7px;background:var(--body-bg);border:1px solid var(--border);border-radius:var(--r2);padding:6px 12px;font-size:12px;font-weight:500;color:var(--text);cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.kpi-chip:hover{border-color:var(--primary);background:var(--primary-light)}
+.kpi-chip .kn{font-weight:700;font-family:var(--font2);font-size:14px}
+.kpi-chip.success .kn{color:var(--success)}
+.kpi-chip.warning .kn{color:var(--warning)}
+.kpi-chip.primary .kn{color:var(--primary)}
+.kpi-chip.danger .kn{color:var(--danger)}
+
+.tb-actions{display:flex;gap:8px;margin-left:10px}
+.btn-frest{padding:8px 16px;border-radius:var(--r2);border:none;cursor:pointer;font-size:13px;font-weight:500;font-family:var(--font);display:flex;align-items:center;gap:6px;transition:all 0.2s;line-height:1}
+.btn-frest.primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(90,141,238,0.4)}
+.btn-frest.primary:hover{background:#4a7fe0;box-shadow:0 4px 20px rgba(90,141,238,0.5)}
+.btn-frest.outline{background:#fff;border:1px solid var(--border2);color:var(--text)}
+.btn-frest.outline:hover{background:var(--primary-light);border-color:var(--primary);color:var(--primary)}
+.btn-frest.success{background:var(--success);color:#fff}
+.btn-frest.danger{background:var(--danger-light);border:1px solid rgba(255,91,91,0.2);color:var(--danger)}
+.btn-frest i{font-size:11px}
+
+/* ======== BOARD ======== */
+.board{display:flex;gap:14px;padding:14px;flex:1;overflow:hidden}
+.col-left{display:flex;flex-direction:column;gap:12px;width:57%;overflow-y:auto;min-width:0;padding-right:2px}
+.col-right{width:43%;display:flex;flex-direction:column;gap:12px;min-width:0;overflow-y:auto}
+
+/* ======== FREST CARD ======== */
+.fcard{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--r3);box-shadow:var(--shadow-card);overflow:hidden}
+
+/* ======== PATIENT CARD ======== */
+.pc-hero{padding:18px 18px 14px;border-bottom:1px solid var(--border);position:relative;background:#fff}
+.pc-hero.deceased{background:linear-gradient(135deg,rgba(255,91,91,0.04) 0%,#fff 60%)}
+.pc-hero-accent{position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--purple))}
+.pc-hero-accent.danger{background:linear-gradient(90deg,var(--danger),var(--warning))}
+
+.pc-status-badge{position:absolute;top:16px;right:16px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.3px}
+.badge-deceased{background:var(--danger-light);color:var(--danger);border:1px solid rgba(255,91,91,0.2)}
+.badge-critical{background:var(--warning-light);color:var(--warning);border:1px solid rgba(253,172,65,0.2)}
+.badge-active{background:var(--success-light);color:var(--success);border:1px solid rgba(57,218,138,0.2)}
+
+.pc-top-row{display:flex;align-items:flex-start;gap:14px;margin-bottom:12px}
+.pc-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;flex-shrink:0;box-shadow:0 4px 12px rgba(90,141,238,0.3)}
+.pc-name{font-family:var(--font2);font-size:19px;font-weight:600;color:var(--text-dark);margin-bottom:6px;line-height:1.2}
+.pc-pills{display:flex;gap:6px;flex-wrap:wrap}
+.pc-pill{padding:3px 10px;border-radius:20px;font-size:11px;background:var(--body-bg);border:1px solid var(--border);color:var(--text-muted);font-weight:500}
+.pc-pill.phone-ok{color:var(--success);border-color:rgba(57,218,138,0.3);background:var(--success-light)}
+.pc-pill.phone-bad{color:var(--danger);border-color:rgba(255,91,91,0.3);background:var(--danger-light)}
+.pc-pill.tag{background:var(--primary-light);color:var(--primary);border-color:rgba(90,141,238,0.2)}
+
+.pc-address{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px;padding-left:66px;margin-top:4px}
+.pc-address i{color:var(--danger);font-size:11px}
+
+.pc-metrics{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.pc-metric{padding:12px 8px;text-align:center;border-right:1px solid var(--border)}
+.pc-metric:last-child{border-right:none}
+.pc-metric .mn{font-size:18px;font-weight:700;font-family:var(--font2);color:var(--primary);line-height:1}
+.pc-metric .ml{font-size:10px;color:var(--text-muted);margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
+
+.pc-actions{padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;background:#fafafa;border-bottom:1px solid var(--border)}
+.pac{padding:7px 14px;border-radius:var(--r2);border:1px solid;cursor:pointer;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;transition:all 0.2s;font-family:var(--font)}
+.pac.success{background:var(--success-light);color:var(--success);border-color:rgba(57,218,138,0.2)}
+.pac.success:hover{background:var(--success);color:#fff}
+.pac.primary{background:var(--primary-light);color:var(--primary);border-color:rgba(90,141,238,0.2)}
+.pac.primary:hover{background:var(--primary);color:#fff}
+.pac.warning{background:var(--warning-light);color:var(--warning);border-color:rgba(253,172,65,0.2)}
+.pac.warning:hover{background:var(--warning);color:#fff}
+.pac.danger{background:var(--danger-light);color:var(--danger);border-color:rgba(255,91,91,0.2)}
+.pac.danger:hover{background:var(--danger);color:#fff}
+.pac.secondary{background:var(--body-bg);color:var(--text);border-color:var(--border2)}
+.pac.secondary:hover{background:var(--primary-light);color:var(--primary);border-color:rgba(90,141,238,0.2)}
+.pac i{font-size:11px}
+
+.pc-last-note{padding:10px 16px;font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;background:#fff}
+.pc-last-note .lnote-label{font-weight:600;color:var(--text);white-space:nowrap;flex-shrink:0}
+.pc-last-note .lnote-text{font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.pc-last-note i{color:var(--primary);font-size:11px;flex-shrink:0}
+
+/* ======== TABS PANEL ======== */
+.tabs-panel{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--r3);box-shadow:var(--shadow-card);overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0}
+.tabs-nav{display:flex;border-bottom:1px solid var(--border);background:#fafafa;overflow-x:auto;flex-shrink:0}
+.tabs-nav::-webkit-scrollbar{height:0}
+.tn-btn{padding:12px 16px;background:none;border:none;cursor:pointer;font-size:12px;font-weight:500;color:var(--text-muted);white-space:nowrap;transition:all 0.2s;border-bottom:2px solid transparent;font-family:var(--font)}
+.tn-btn:hover{color:var(--primary);background:var(--primary-light)}
+.tn-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600;background:#fff}
+.tab-body{display:none;padding:12px;overflow-y:auto;flex:1;min-height:0}
+.tab-body.active{display:block}
+
+.tl-item{padding:12px 14px;background:#fff;border:1px solid var(--border);border-radius:var(--r2);margin-bottom:8px;border-left:3px solid var(--primary);transition:all 0.2s;cursor:default}
+.tl-item:hover{box-shadow:var(--shadow-sm);border-left-width:3px}
+.tl-item.danger{border-left-color:var(--danger);background:rgba(255,91,91,0.02)}
+.tl-item.warning{border-left-color:var(--warning);background:rgba(253,172,65,0.02)}
+.tl-item .tl-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;gap:8px}
+.tl-item .tl-title{font-weight:600;font-size:13px;color:var(--text-dark)}
+.tl-item .tl-sub{font-size:12px;color:var(--text-muted);line-height:1.5}
+.tl-item .tl-meta{font-size:11px;color:var(--text-light);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap}
+.tl-item .tl-meta i{margin-right:3px}
+
+/* Frest pill badges */
+.fpill{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:3px}
+.fp-success{background:var(--success-light);color:var(--success)}
+.fp-danger{background:var(--danger-light);color:var(--danger)}
+.fp-warning{background:var(--warning-light);color:var(--warning)}
+.fp-primary{background:var(--primary-light);color:var(--primary)}
+.fp-info{background:var(--info-light);color:var(--info)}
+.fp-secondary{background:rgba(71,95,123,0.1);color:var(--secondary)}
+.fp-purple{background:var(--purple-light);color:var(--purple)}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-light)}
+.empty-state i{font-size:30px;margin-bottom:10px;opacity:0.3;display:block}
+.empty-state span{font-size:13px}
+
+/* ======== RIGHT PANEL ======== */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex-shrink:0}
+.stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow-sm)}
+.stat-card:hover{box-shadow:var(--shadow-card);transform:translateY(-1px)}
+.stat-card .sc-row{display:flex;justify-content:space-between;align-items:flex-start}
+.stat-card .sc-icon{width:38px;height:38px;border-radius:var(--r2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.stat-card .sc-num{font-size:24px;font-weight:700;font-family:var(--font2);line-height:1;margin-top:8px}
+.stat-card .sc-label{font-size:11px;color:var(--text-muted);margin-top:4px;font-weight:500}
+.sc-success .sc-icon{background:var(--success-light);color:var(--success)}
+.sc-success .sc-num{color:var(--success)}
+.sc-warning .sc-icon{background:var(--warning-light);color:var(--warning)}
+.sc-warning .sc-num{color:var(--warning)}
+.sc-primary .sc-icon{background:var(--primary-light);color:var(--primary)}
+.sc-primary .sc-num{color:var(--primary)}
+.sc-danger .sc-icon{background:var(--danger-light);color:var(--danger)}
+.sc-danger .sc-num{color:var(--danger)}
+
+/* ======== TASK PANEL ======== */
+.task-panel{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--r3);box-shadow:var(--shadow-card);display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.tp-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:#fafafa}
+.tp-head h3{font-family:var(--font2);font-size:14px;font-weight:600;color:var(--text-dark);display:flex;align-items:center;gap:8px}
+.tp-head h3 i{color:var(--primary)}
+.tp-tabs{display:flex;border-bottom:1px solid var(--border);background:#fafafa;overflow-x:auto;flex-shrink:0}
+.tp-tabs::-webkit-scrollbar{height:0}
+.tp-tab{padding:10px 14px;background:none;border:none;cursor:pointer;font-size:11px;font-weight:500;color:var(--text-muted);border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.2s;font-family:var(--font)}
+.tp-tab.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600;background:#fff}
+.tp-tab:hover{color:var(--primary);background:var(--primary-light)}
+.task-list{flex:1;overflow-y:auto;padding:10px}
+
+.task-card{background:#fff;border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;border-left:3px solid;position:relative}
+.task-card:hover{box-shadow:var(--shadow-sm);border-color:var(--border2);transform:translateX(2px)}
+.task-card.hp{border-left-color:var(--danger)}
+.task-card.mp{border-left-color:var(--warning)}
+.task-card.lp{border-left-color:var(--success)}
+.tc-title{font-weight:600;font-size:13px;color:var(--text-dark);line-height:1.3}
+.tc-note{font-size:12px;color:var(--text-muted);margin:5px 0 6px;line-height:1.5}
+.tc-meta{font-size:11px;color:var(--text-light);display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.tc-actions{display:flex;gap:6px;margin-top:10px;border-top:1px solid var(--border);padding-top:8px}
+.tca{padding:5px 12px;border-radius:var(--r);border:1px solid;cursor:pointer;font-size:11px;font-weight:500;transition:all 0.2s;font-family:var(--font);display:flex;align-items:center;gap:4px}
+.tca.success{background:var(--success-light);color:var(--success);border-color:rgba(57,218,138,0.2)}
+.tca.success:hover{background:var(--success);color:#fff}
+.tca.primary{background:var(--primary-light);color:var(--primary);border-color:rgba(90,141,238,0.2)}
+.tca.primary:hover{background:var(--primary);color:#fff}
+.tca.warning{background:var(--warning-light);color:var(--warning);border-color:rgba(253,172,65,0.2)}
+.tca.warning:hover{background:var(--warning);color:#fff}
+.tca.secondary{background:var(--body-bg);color:var(--text);border-color:var(--border)}
+.tca.secondary:hover{background:var(--primary-light);color:var(--primary);border-color:rgba(90,141,238,0.2)}
+.pin-icon{color:var(--warning);font-size:10px}
+
+/* ======== MODULE VIEWS ======== */
+.module-view{display:none;flex-direction:column;height:100%;padding:14px}
+.module-view.active{display:flex}
+.module-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-shrink:0}
+.module-head h2{font-family:var(--font2);font-size:17px;font-weight:600;color:var(--text-dark)}
+.page-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--r3);box-shadow:var(--shadow-card);overflow:hidden;padding:16px}
+
+/* ======== OVERLAYS / MODALS ======== */
+.overlay{position:fixed;inset:0;background:rgba(34,41,47,0.5);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.overlay.open{display:flex}
+.modal{background:#fff;border:1px solid var(--border);border-radius:var(--r3);width:90%;max-width:580px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(34,41,47,0.18)}
+.modal.wide{max-width:760px}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:#fafafa;border-radius:var(--r3) var(--r3) 0 0}
+.modal-head h2{font-family:var(--font2);font-size:15px;font-weight:600;color:var(--text-dark);display:flex;align-items:center;gap:8px}
+.modal-head h2 i{font-size:14px}
+.modal-body{padding:20px 22px;overflow-y:auto;flex:1}
+.modal-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;background:#fafafa}
+.close-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:2px 6px;border-radius:var(--r);line-height:1;transition:all 0.2s}
+.close-btn:hover{color:var(--danger);background:var(--danger-light)}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;letter-spacing:0.2px}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:#fff;border:1px solid var(--border2);border-radius:var(--r2);padding:9px 12px;color:var(--text-dark);font-size:13px;font-family:var(--font);outline:none;transition:border-color 0.2s,box-shadow 0.2s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(90,141,238,0.12)}
+.form-group textarea{resize:vertical;min-height:80px}
+.form-group select option{background:#fff}
+
+.checkrow{display:flex;gap:20px;padding:12px;background:var(--body-bg);border-radius:var(--r2);border:1px solid var(--border)}
+.checkrow label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text);font-weight:500}
+.checkrow input[type=checkbox]{accent-color:var(--primary);width:14px;height:14px}
+
+/* ======== DATA TABLE ======== */
+.dtable{width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
+.dtable th{background:#fafafa;padding:10px 14px;text-align:left;font-weight:600;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid var(--border)}
+.dtable td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+.dtable tr:last-child td{border-bottom:none}
+.dtable tr:hover td{background:rgba(90,141,238,0.03)}
+.dtable a{color:var(--primary);text-decoration:none;font-weight:600}
+.dtable a:hover{text-decoration:underline}
+
+/* ======== FOLLOW-UP ======== */
+.fu-filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.fu-filters select,.fu-filters input{background:#fff;border:1px solid var(--border2);border-radius:var(--r2);padding:7px 12px;color:var(--text);font-size:12px;font-family:var(--font);outline:none}
+.fu-filters select:focus,.fu-filters input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(90,141,238,0.12)}
+
+.fu-row{display:grid;grid-template-columns:28px 1fr auto auto auto;gap:12px;align-items:center;padding:12px 16px;background:#fff;border:1px solid var(--border);border-radius:var(--r2);margin-bottom:6px;cursor:pointer;transition:all 0.2s}
+.fu-row:hover{border-color:var(--primary);box-shadow:var(--shadow-sm)}
+.fu-row input[type=checkbox]{accent-color:var(--primary);width:14px;height:14px}
+.fu-row .fu-name{font-weight:600;font-size:13px;color:var(--text-dark)}
+.fu-row .fu-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.fu-row .fu-last{font-size:11px;color:var(--text-light);text-align:right}
+.fu-row .fu-note{font-size:11px;color:var(--text-muted);max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.select-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--primary-light);border:1px solid rgba(90,141,238,0.2);border-radius:var(--r2);margin-bottom:10px;font-size:12px}
+.fu-bulk{display:flex;gap:8px;align-items:center;padding-top:10px;border-top:1px solid var(--border);margin-top:8px}
+
+/* ======== AGENT CARD ======== */
+.agent-card{background:#fff;border:1px solid var(--border);border-radius:var(--r2);padding:16px;transition:all 0.2s;box-shadow:var(--shadow-sm)}
+.agent-card:hover{box-shadow:var(--shadow-card)}
+.ag-av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;flex-shrink:0}
+.ag-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.ag-stat{text-align:center;background:var(--body-bg);padding:8px 4px;border-radius:var(--r)}
+.ag-stat .v{font-size:15px;font-weight:700;font-family:var(--font2);color:var(--primary)}
+.ag-stat .k{font-size:10px;color:var(--text-muted);margin-top:2px;font-weight:500}
+.rank-badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
+.rank-1{background:var(--warning-light);color:var(--warning)}
+.rank-2{background:rgba(130,141,153,0.12);color:var(--text-muted)}
+.rank-3{background:rgba(180,140,100,0.12);color:#b48c64}
+.progress-bar{height:4px;background:var(--border);border-radius:4px;margin-top:10px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--purple));border-radius:4px;transition:width 0.6s ease}
+
+/* ADMIN tabs */
+.admin-tabs{display:flex;gap:6px;margin-bottom:16px;background:#fff;border:1px solid var(--border);border-radius:var(--r2);padding:4px}
+.adm-tab{padding:7px 14px;border-radius:var(--r);background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:500;font-family:var(--font);transition:all 0.2s}
+.adm-tab.active{background:var(--primary);color:#fff;box-shadow:0 4px 12px rgba(90,141,238,0.35)}
+.adm-panel{display:none}
+.adm-panel.active-panel{display:block}
+.filter-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+
+/* call history */
+.ch-item{padding:12px 14px;background:#fff;border:1px solid var(--border);border-radius:var(--r2);margin-bottom:8px;transition:all 0.2s}
+.ch-item:hover{box-shadow:var(--shadow-sm)}
+.ch-item .ch-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.ch-item .ch-note{font-size:12px;color:var(--text-muted);line-height:1.5}
+.ch-item .ch-meta{font-size:11px;color:var(--text-light);display:flex;gap:12px;margin-top:6px}
+
+/* Live ring */
+.live-badge{display:inline-flex;align-items:center;gap:6px;background:var(--success-light);border:1px solid rgba(57,218,138,0.3);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;color:var(--success)}
+.live-badge i{animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.fade-in{animation:fadeIn 0.25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.divider{border:none;border-top:1px solid var(--border);margin:14px 0}
+
+/* Misc */
+.sb-divider{border:none;border-top:1px solid var(--border);margin:6px 14px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ======== SIDEBAR ======== -->
+<div class="sidebar">
+  <div class="sb-logo">
+    <div class="brand-icon"><i class="fas fa-heartbeat"></i></div>
+    <div class="brand">Med<span>CRM</span></div>
+  </div>
+
+  <div style="padding:14px 14px 0">
+    <div class="sb-agent">
+      <div class="ag-row">
+        <div class="av">SJ</div>
+        <div>
+          <div class="name">Sarah Johnson</div>
+          <div class="role">Senior Agent · A-021</div>
+        </div>
+      </div>
+      <div class="ag-badges">
+        <span class="status-dot">Online</span>
+        <span class="fpill fp-primary" style="font-size:10px"><i class="fas fa-phone" style="font-size:9px"></i> 24 calls</span>
+        <span class="fpill fp-success" style="font-size:10px">89% rate</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-nav">
+    <div class="sb-section">Call Board</div>
+    <div class="sb-item active" onclick="switchView('board',this)"><i class="fas fa-th-large"></i> My Call Board <span class="sb-badge">Live</span></div>
+    <div class="sb-item" onclick="switchView('followup',this)"><i class="fas fa-redo-alt"></i> Follow-Up List <span class="sb-badge warning">8</span></div>
+    <div class="sb-item" onclick="switchView('lastcalls',this)"><i class="fas fa-clock"></i> Last Calls <span class="sb-badge light">7</span></div>
+
+    <hr class="sb-divider">
+    <div class="sb-section">Patient</div>
+    <div class="sb-item" onclick="switchView('patients',this)"><i class="fas fa-users"></i> Patients <span class="sb-badge light">128</span></div>
+    <div class="sb-item" onclick="openMissingAddr()"><i class="fas fa-map-marker-alt"></i> Missing Address <span class="sb-badge danger">5</span></div>
+    <div class="sb-item" onclick="openSmsLog()"><i class="fas fa-sms"></i> SMS Log <span class="sb-badge light">12</span></div>
+
+    <hr class="sb-divider">
+    <div class="sb-section">Communication</div>
+    <div class="sb-item" onclick="openNewCall()"><i class="fas fa-phone-alt"></i> New Call</div>
+    <div class="sb-item" onclick="openSMSModal()"><i class="fas fa-comment-alt"></i> Send SMS</div>
+    <div class="sb-item" onclick="openLetterModal()"><i class="fas fa-envelope"></i> Send Letter</div>
+
+    <hr class="sb-divider">
+    <div class="sb-section">Admin</div>
+    <div class="sb-item" onclick="switchView('admin',this)"><i class="fas fa-crown" style="color:var(--warning)"></i> Admin Panel</div>
+    <div class="sb-item" onclick="switchView('agentprofile',this)"><i class="fas fa-user-tie"></i> My Profile</div>
+  </div>
+</div>
+
+<!-- ======== MAIN ======== -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="tb-search">
+      <i class="fas fa-search"></i>
+      <input type="text" id="gSearch" placeholder="Search by name, phone, ID, address…" oninput="globalSearch(this.value)">
+    </div>
+    <div class="tb-kpis">
+      <div class="kpi-chip success"><span class="kn" id="statComp">14</span> Done Today</div>
+      <div class="kpi-chip warning"><span class="kn" id="statPend">7</span> Pending</div>
+      <div class="kpi-chip primary"><span class="kn" id="statFu">4</span> Follow-up</div>
+      <div class="kpi-chip danger"><span class="kn">2</span> Missed</div>
+    </div>
+    <div class="tb-actions">
+      <button class="btn-frest outline" onclick="openNewCall()"><i class="fas fa-phone-alt"></i> Incoming</button>
+      <button class="btn-frest primary" onclick="openNewTaskModal()"><i class="fas fa-plus"></i> New Task</button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- BOARD VIEW -->
+    <div id="view-board" class="module-view active fade-in" style="padding:0">
+      <div class="board">
+
+        <!-- LEFT -->
+        <div class="col-left">
+
+          <!-- Patient Card -->
+          <div id="patientCard" class="fcard fade-in"></div>
+
+          <!-- Tabs Panel -->
+          <div class="tabs-panel">
+            <div class="tabs-nav">
+              <button class="tn-btn active" onclick="switchTab(this,'tab-appt')">📅 Appointments</button>
+              <button class="tn-btn" onclick="switchTab(this,'tab-calls')">📞 Call History</button>
+              <button class="tn-btn" onclick="switchTab(this,'tab-lab')">🔬 Lab Reports</button>
+              <button class="tn-btn" onclick="switchTab(this,'tab-therapy')">💊 Therapy</button>
+              <button class="tn-btn" onclick="switchTab(this,'tab-neb')">🌫️ Nebulize</button>
+              <button class="tn-btn" onclick="switchTab(this,'tab-vac')">💉 Vaccination</button>
+            </div>
+            <div id="tab-appt" class="tab-body active"></div>
+            <div id="tab-calls" class="tab-body"></div>
+            <div id="tab-lab" class="tab-body"></div>
+            <div id="tab-therapy" class="tab-body"></div>
+            <div id="tab-neb" class="tab-body"></div>
+            <div id="tab-vac" class="tab-body"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="col-right">
+          <div class="stats-grid">
+            <div class="stat-card sc-success" onclick="filterTasks('completed')">
+              <div class="sc-row">
+                <div>
+                  <div class="sc-num">14</div>
+                  <div class="sc-label">Completed Today</div>
+                </div>
+                <div class="sc-icon"><i class="fas fa-check-circle"></i></div>
+              </div>
+            </div>
+            <div class="stat-card sc-warning" onclick="filterTasks('pending')">
+              <div class="sc-row">
+                <div>
+                  <div class="sc-num">7</div>
+                  <div class="sc-label">Pending Tasks</div>
+                </div>
+                <div class="sc-icon"><i class="fas fa-clock"></i></div>
+              </div>
+            </div>
+            <div class="stat-card sc-primary" onclick="filterTasks('transferred')">
+              <div class="sc-row">
+                <div>
+                  <div class="sc-num">3</div>
+                  <div class="sc-label">Transferred</div>
+                </div>
+                <div class="sc-icon"><i class="fas fa-exchange-alt"></i></div>
+              </div>
+            </div>
+            <div class="stat-card sc-danger" onclick="filterTasks('pinned')">
+              <div class="sc-row">
+                <div>
+                  <div class="sc-num">2</div>
+                  <div class="sc-label">Pinned Priority</div>
+                </div>
+                <div class="sc-icon"><i class="fas fa-thumbtack"></i></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="task-panel">
+            <div class="tp-head">
+              <h3><i class="fas fa-tasks"></i> Task Manager</h3>
+              <button class="btn-frest primary" style="font-size:11px;padding:6px 12px" onclick="openNewTaskModal()"><i class="fas fa-plus"></i> Add</button>
+            </div>
+            <div class="tp-tabs">
+              <button class="tp-tab active" onclick="switchTaskTab(this,'pending')">📋 Pending (5)</button>
+              <button class="tp-tab" onclick="switchTaskTab(this,'completed')">✅ Done (14)</button>
+              <button class="tp-tab" onclick="switchTaskTab(this,'transferred')">🔄 Transferred (3)</button>
+              <button class="tp-tab" onclick="switchTaskTab(this,'pinned')">📌 Pinned</button>
+              <button class="tp-tab" onclick="switchTaskTab(this,'priority')">⚠️ Priority</button>
+            </div>
+            <div class="task-list" id="taskListEl"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOLLOW-UP VIEW -->
+    <div id="view-followup" class="module-view fade-in">
+      <div class="module-head">
+        <h2>📋 Follow-Up Patient List</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn-frest success" onclick="saveSelectedAsToday()"><i class="fas fa-calendar-check"></i> Save Selected as Today's Task</button>
+          <button class="btn-frest outline" onclick="switchView('board',null)"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+      </div>
+      <div class="page-card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:16px">
+        <div class="fu-filters">
+          <select id="fu-agent"><option value="">All Agents</option><option>Sarah J.</option><option>Mike K.</option><option>Lisa M.</option></select>
+          <select id="fu-status"><option value="">All Status</option><option>Not Called</option><option>Callback Needed</option><option>Busy</option></select>
+          <select id="fu-priority"><option value="">All Priority</option><option>High</option><option>Medium</option><option>Low</option></select>
+          <input type="date" id="fu-dateFrom">
+          <input type="date" id="fu-dateTo">
+          <button class="btn-frest primary" style="padding:7px 14px" onclick="applyFuFilter()"><i class="fas fa-filter"></i> Filter</button>
+        </div>
+        <div id="fu-list" style="overflow-y:auto;flex:1"></div>
+      </div>
+    </div>
+
+    <!-- LAST CALLS VIEW -->
+    <div id="view-lastcalls" class="module-view fade-in">
+      <div class="module-head">
+        <h2>📞 Last Calls <span style="font-size:13px;color:var(--text-muted);font-weight:400">(This Agent)</span></h2>
+        <button class="btn-frest outline" onclick="switchView('board',null)"><i class="fas fa-arrow-left"></i> Back</button>
+      </div>
+      <div class="page-card" style="flex:1;overflow-y:auto;padding:16px" id="lastCallsList"></div>
+    </div>
+
+    <!-- PATIENTS VIEW -->
+    <div id="view-patients" class="module-view fade-in">
+      <div class="module-head">
+        <h2>👥 Patient Management</h2>
+        <div style="display:flex;gap:8px">
+          <div class="tb-search" style="max-width:240px">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search patients…">
+          </div>
+          <button class="btn-frest primary"><i class="fas fa-plus"></i> New Patient</button>
+        </div>
+      </div>
+      <div class="page-card" style="flex:1;overflow-y:auto;padding:0">
+        <div id="patientListView"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN VIEW -->
+    <div id="view-admin" class="module-view fade-in">
+      <div class="module-head">
+        <h2>👑 Admin Panel</h2>
+      </div>
+      <div class="admin-tabs">
+        <button class="adm-tab active" onclick="switchAdminTab(this,'adm-assign')">📋 Assign Tasks</button>
+        <button class="adm-tab" onclick="switchAdminTab(this,'adm-agents')">🏆 Agent Performance</button>
+        <button class="adm-tab" onclick="switchAdminTab(this,'adm-filters')">🔍 Patient Filter</button>
+        <button class="adm-tab" onclick="switchAdminTab(this,'adm-monitor')">📡 Live Monitor</button>
+      </div>
+      <div style="overflow-y:auto;flex:1">
+        <div id="adm-assign" class="adm-panel active-panel"></div>
+        <div id="adm-agents" class="adm-panel"></div>
+        <div id="adm-filters" class="adm-panel"></div>
+        <div id="adm-monitor" class="adm-panel"></div>
+      </div>
+    </div>
+
+    <!-- AGENT PROFILE VIEW -->
+    <div id="view-agentprofile" class="module-view fade-in">
+      <div class="module-head">
+        <h2>👤 My Profile &amp; Stats</h2>
+      </div>
+      <div style="overflow-y:auto;flex:1" id="agentProfileContent"></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- ======== MODALS ======== -->
+
+<!-- New Call Modal -->
+<div class="overlay" id="modal-call">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h2><i class="fas fa-phone-alt" style="color:var(--success)"></i> Log Call / New Task</h2>
+      <button class="close-btn" onclick="closeModal('modal-call')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Call Type</label><select id="callType"><option>Outgoing</option><option>Incoming</option></select></div>
+        <div class="form-group"><label>Task Type</label><select id="taskType"><option>Follow-up Call</option><option>Lab Report Call</option><option>Appointment Call</option><option>Meeting Call</option><option>First Contact</option><option>Emergency</option><option>Insurance</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Patient</label><select id="callPatient"><option>John Michael Doe</option><option>Mary Elizabeth Smith</option><option>Robert Williams Johnson</option></select></div>
+        <div class="form-group"><label>Call Outcome</label><select id="callOutcome"><option>Answered</option><option>No Answer</option><option>Busy / Engaged</option><option>Out of Reach</option><option>Wrong Number</option><option>Callback Requested</option><option>Deceased Confirmed</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Duration (mm:ss)</label><input type="text" placeholder="04:32" id="callDuration"></div>
+        <div class="form-group"><label>Priority</label><select id="callPriority"><option>High</option><option>Medium</option><option>Low</option></select></div>
+      </div>
+      <div class="form-group"><label>Call Note</label><textarea placeholder="Notes from this call…" id="callNote"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Follow-Up Target Date</label><input type="date" id="callFollowDate"></div>
+        <div class="form-group"><label>Follow-Up Note</label><input type="text" placeholder="What to discuss next…" id="callFollowNote"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Transfer to Agent</label><select id="callTransfer"><option value="">— No Transfer —</option><option>Mike K.</option><option>Lisa M.</option><option>Tom B.</option></select></div>
+        <div class="form-group"><label>Transfer Reason</label><input type="text" placeholder="Reason for transfer…" id="callTransferReason"></div>
+      </div>
+      <div class="checkrow">
+        <label><input type="checkbox" id="chkSMS"> Send SMS (No Answer)</label>
+        <label><input type="checkbox" id="chkLetter"> Send Letter (Wrong Number)</label>
+        <label style="color:var(--danger)"><input type="checkbox" id="chkDeceased" style="accent-color:var(--danger)"> Mark as Deceased</label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-frest outline" onclick="closeModal('modal-call')">Cancel</button>
+      <button class="btn-frest success" onclick="saveCall()"><i class="fas fa-save"></i> Save &amp; Log</button>
+    </div>
+  </div>
+</div>
+
+<!-- SMS Modal -->
+<div class="overlay" id="modal-sms">
+  <div class="modal">
+    <div class="modal-head">
+      <h2><i class="fas fa-comment-alt" style="color:var(--info)"></i> Send SMS</h2>
+      <button class="close-btn" onclick="closeModal('modal-sms')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Patient</label><select><option>John Michael Doe — +1 (555) 123-4567</option><option>Mary Smith — INVALID</option></select></div>
+      <div class="form-group"><label>Template</label>
+        <select onchange="fillSmsTemplate(this.value)">
+          <option value="">Custom Message</option>
+          <option value="missed">Missed Call — We tried to reach you</option>
+          <option value="appt">Appointment Reminder</option>
+          <option value="lab">Lab Results Ready</option>
+          <option value="fu">Follow-up Reminder</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Message</label><textarea id="smsMsg" rows="4" placeholder="Enter your message…"></textarea></div>
+      <div style="font-size:11px;color:var(--text-muted);text-align:right"><span id="smsCount">0</span>/160 characters</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-frest outline" onclick="closeModal('modal-sms')">Cancel</button>
+      <button class="btn-frest primary" onclick="sendSMSAction()"><i class="fas fa-paper-plane"></i> Send SMS</button>
+    </div>
+  </div>
+</div>
+
+<!-- Letter Modal -->
+<div class="overlay" id="modal-letter">
+  <div class="modal">
+    <div class="modal-head">
+      <h2><i class="fas fa-envelope" style="color:var(--warning)"></i> Send Postal Letter</h2>
+      <button class="close-btn" onclick="closeModal('modal-letter')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Patient</label><select><option>Mary Elizabeth Smith — 456 Park Ave, Banani</option><option>John Michael Doe — 123 Main St, Gulshan</option></select></div>
+      <div class="form-group"><label>Delivery Address</label><input type="text" value="456 Park Ave, Banani, Dhaka" id="letterAddr"></div>
+      <div class="form-group"><label>Reason</label><select id="letterReason"><option>Invalid Phone Number</option><option>Patient Requested Letter</option><option>Cannot Reach by Phone</option><option>Appointment Notice</option></select></div>
+      <div class="form-group"><label>Letter Content</label><textarea rows="5" placeholder="Dear Patient, …"></textarea></div>
+      <div class="form-group"><label>Internal Note</label><input type="text" placeholder="Internal note about this letter…"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-frest outline" onclick="closeModal('modal-letter')">Cancel</button>
+      <button class="btn-frest primary"><i class="fas fa-print"></i> Queue for Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- Call History Modal -->
+<div class="overlay" id="modal-callhist">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h2><i class="fas fa-history" style="color:var(--primary)"></i> Full Call History</h2>
+      <button class="close-btn" onclick="closeModal('modal-callhist')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="callHistModalBody"></div>
+  </div>
+</div>
+
+<!-- Missing Address Modal -->
+<div class="overlay" id="modal-missing">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h2><i class="fas fa-map-marker-alt" style="color:var(--danger)"></i> Missing Address Table</h2>
+      <button class="close-btn" onclick="closeModal('modal-missing')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <table class="dtable">
+        <thead><tr><th>Patient ID</th><th>Name</th><th>Letter Sent</th><th>Sent Date</th><th>Status</th><th>Note</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>#P-002</td><td>Mary E. Smith</td><td><span class="fpill fp-success">Yes</span></td><td>2024-03-24</td><td><span class="fpill fp-warning">Awaiting</span></td><td>Phone invalid</td><td><button class="tca success">Resend</button></td></tr>
+          <tr><td>#P-011</td><td>Ahmed Karim</td><td><span class="fpill fp-danger">No</span></td><td>—</td><td><span class="fpill fp-danger">Pending</span></td><td>No address on file</td><td><button class="tca primary">Send</button></td></tr>
+          <tr><td>#P-045</td><td>Fatima Begum</td><td><span class="fpill fp-success">Yes</span></td><td>2024-03-20</td><td><span class="fpill fp-success">Delivered</span></td><td>Address updated</td><td><button class="tca secondary">View</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SMS Log Modal -->
+<div class="overlay" id="modal-smslog">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h2><i class="fas fa-sms" style="color:var(--info)"></i> SMS Log</h2>
+      <button class="close-btn" onclick="closeModal('modal-smslog')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <table class="dtable">
+        <thead><tr><th>Patient ID</th><th>Message</th><th>Sent At</th><th>Status</th><th>Callback?</th><th>Resend</th></tr></thead>
+        <tbody>
+          <tr><td>#P-001</td><td>We tried to reach you. Please call back.</td><td>2024-03-25 10:45</td><td><span class="fpill fp-success">Delivered</span></td><td><span class="fpill fp-danger">No</span></td><td><button class="tca primary">Resend (1)</button></td></tr>
+          <tr><td>#P-014</td><td>Your lab results are ready.</td><td>2024-03-24 14:20</td><td><span class="fpill fp-warning">Pending</span></td><td><span class="fpill fp-success">Yes ✓</span></td><td><button class="tca secondary">Sent (2)</button></td></tr>
+          <tr><td>#P-022</td><td>Appointment reminder: April 1st.</td><td>2024-03-23 09:00</td><td><span class="fpill fp-success">Delivered</span></td><td><span class="fpill fp-danger">No</span></td><td><button class="tca primary">Resend (0)</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- New Task Modal -->
+<div class="overlay" id="modal-newtask">
+  <div class="modal">
+    <div class="modal-head">
+      <h2><i class="fas fa-plus-circle" style="color:var(--primary)"></i> New Task</h2>
+      <button class="close-btn" onclick="closeModal('modal-newtask')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Task Title</label><input type="text" placeholder="Enter task title…"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Patient</label><select><option>John Michael Doe</option><option>Mary Elizabeth Smith</option></select></div>
+        <div class="form-group"><label>Priority</label><select><option>High</option><option>Medium</option><option>Low</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Task Type</label><select><option>Follow-up Call</option><option>Lab Report Call</option><option>Appointment Call</option><option>Meeting</option></select></div>
+        <div class="form-group"><label>Due Date</label><input type="date"></div>
+      </div>
+      <div class="form-group"><label>Note</label><textarea placeholder="Task notes…"></textarea></div>
+      <div class="form-group"><label>Follow-up Note</label><input type="text" placeholder="What to say during follow-up…"></div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);margin-top:4px;font-weight:500">
+        <input type="checkbox" style="accent-color:var(--warning)"> Pin this task
+      </label>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-frest outline" onclick="closeModal('modal-newtask')">Cancel</button>
+      <button class="btn-frest primary" onclick="saveNewTask()"><i class="fas fa-save"></i> Save Task</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== DATA ==========
+const PATIENTS={
+  john:{id:'P-001',name:'John Michael Doe',age:45,gender:'Male',phone:'+1 (555) 123-4567',phoneValid:true,email:'john.doe@email.com',address:'123 Main St, Gulshan, Dhaka',priority:'high',status:'active',isDeceased:false,lastCall:'2024-03-25 10:30 AM',lastCallNote:'Discussed lab results, patient concerned about high LDL',lastVisit:'2024-02-15',totalCalls:12,totalAppts:5,totalLabs:3,tags:['VIP','Urgent Care','Chronic'],
+    appointments:[{date:'2024-04-01',type:'Follow-up Consultation',doctor:'Dr. Smith',status:'Scheduled'},{date:'2024-03-15',type:'Regular Checkup',doctor:'Dr. Johnson',status:'Completed'}],
+    callHistory:[{date:'2024-03-25 10:30',agent:'Sarah J.',dur:'4:32',type:'Outgoing',outcome:'Answered',note:'Discussed lab results, patient concerned about high LDL. Will call back in 3 days.'},{date:'2024-03-20 14:15',agent:'Sarah J.',dur:'3:15',type:'Outgoing',outcome:'Follow-up',note:'Scheduled appointment for next week. Patient sounds better.'},{date:'2024-03-10 09:00',agent:'Mike K.',dur:'2:40',type:'Incoming',outcome:'Answered',note:'Patient called to confirm appointment.'}],
+    labReports:[{date:'2024-03-15',test:'Complete Blood Count',result:'Normal',critical:false},{date:'2024-03-15',test:'Lipid Panel',result:'LDL: 190 mg/dL (High)',critical:true}],
+    therapy:[{date:'2024-03-10',type:'Physical Therapy',dur:'45 min',status:'Completed'},{date:'2024-02-28',type:'Occupational Therapy',dur:'30 min',status:'Completed'}],
+    nebulize:[{date:'2024-03-18',med:'Albuterol',dose:'2.5 mg',status:'Administered'}],
+    vaccination:[{date:'2024-01-15',vaccine:'COVID-19 Booster',dose:'3rd',status:'Completed'},{date:'2023-10-01',vaccine:'Influenza',dose:'Annual',status:'Completed'}]
+  },
+  mary:{id:'P-002',name:'Mary Elizabeth Smith',age:32,gender:'Female',phone:'INVALID',phoneValid:false,email:'mary.smith@email.com',address:'456 Park Ave, Banani, Dhaka',priority:'medium',status:'active',isDeceased:false,lastCall:'2024-03-24 11:20 AM',lastCallNote:'Number invalid — Need to send letter',lastVisit:'2024-03-10',totalCalls:8,totalAppts:3,totalLabs:1,tags:['Regular','Address Update Needed'],
+    appointments:[{date:'2024-03-28',type:'Lab Test',doctor:'Dr. Johnson',status:'Scheduled'}],
+    callHistory:[{date:'2024-03-24 11:20',agent:'Sarah J.',dur:'0:00',type:'Outgoing',outcome:'Failed',note:'Number invalid. Letter queued for postal.'},{date:'2024-03-18 10:00',agent:'Lisa M.',dur:'0:00',type:'Outgoing',outcome:'Busy',note:'Line busy. SMS sent.'}],
+    labReports:[{date:'2024-03-20',test:'Thyroid Panel',result:'Normal',critical:false}],
+    therapy:[],nebulize:[],
+    vaccination:[{date:'2024-02-10',vaccine:'HPV',dose:'2nd',status:'Completed'}]
+  },
+  robert:{id:'P-003',name:'Robert Williams Johnson',age:58,gender:'Male',phone:'+1 (555) 456-7890',phoneValid:true,email:'robert.j@email.com',address:'789 Lake Road, Uttara, Dhaka',priority:'low',status:'deceased',isDeceased:true,deathDate:'2024-03-20',lastCall:'2024-03-18 09:15 AM',lastCallNote:'No answer — Deceased confirmed by family',lastVisit:'2024-01-20',totalCalls:5,totalAppts:2,totalLabs:0,tags:['Deceased'],
+    appointments:[],callHistory:[{date:'2024-03-18 09:15',agent:'Sarah J.',dur:'0:00',type:'Outgoing',outcome:'No Answer',note:'No answer. Deceased confirmed by family on 2024-03-20.'}],
+    labReports:[],therapy:[],nebulize:[],vaccination:[]
+  }
+};
+
+let currentPid='john';
+let currentTaskTab='pending';
+
+const TASKS={
+  pending:[
+    {id:1,title:'Call John Doe — Lab Results',priority:'high',patientKey:'john',due:'Today',note:'Discuss critical LDL 190 result. Patient was worried.',type:'Lab Report Call',pinned:true},
+    {id:2,title:'Send Letter to Mary Smith',priority:'medium',patientKey:'mary',due:'Today',note:'Phone number invalid. Queue postal letter.',type:'Follow-up Call',pinned:true},
+    {id:3,title:'Update Robert Johnson Record',priority:'high',patientKey:'robert',due:'Today',note:'Patient deceased — mark status and close tasks.',type:'Admin',pinned:false},
+    {id:4,title:'Appointment Reminder — Dr. Smith',priority:'medium',patientKey:'john',due:'Tomorrow',note:'Remind about April 1st appointment.',type:'Appointment Call',pinned:false},
+    {id:5,title:'Nebulizer Follow-up',priority:'low',patientKey:'john',due:'This Week',note:'Check if patient used Albuterol correctly.',type:'Follow-up Call',pinned:false},
+  ],
+  completed:[
+    {id:10,title:'Morning check-in — Ahmed K.',priority:'medium',completedDate:'Today',note:'Answered. Feeling better.',type:'Follow-up Call'},
+    {id:11,title:'Lab Results — Fatima B.',priority:'high',completedDate:'Today',note:'Discussed results. Appointment booked.',type:'Lab Report Call'},
+  ],
+  transferred:[
+    {id:20,title:'Insurance Verification — Ali H.',priority:'medium',transferredTo:'Mike K.',reason:'Specialized insurance team',transferredDate:'2024-03-24',note:'Complex insurance case'},
+    {id:21,title:'Complex Case — Bashir M.',priority:'high',transferredTo:'Lisa M.',reason:'Senior agent needed',transferredDate:'2024-03-23',note:'Patient requires specialist consultation'},
+  ]
+};
+
+function init(){renderPatientCard();renderAllTabs();renderTaskList();renderFollowUpList();renderLastCallsList();renderPatientListView();renderAdminPanel();renderAgentProfile();}
+
+// ===== PATIENT CARD =====
+function renderPatientCard(){
+  const p=PATIENTS[currentPid];
+  const card=document.getElementById('patientCard');
+  const isDeceased=p.isDeceased;
+  const badgeHtml=isDeceased?'<span class="pc-status-badge badge-deceased">⚰ DECEASED</span>':p.priority==='high'?'<span class="pc-status-badge badge-critical">⚠ CRITICAL</span>':'<span class="pc-status-badge badge-active">✓ ACTIVE</span>';
+  const initials=p.name.split(' ').map(w=>w[0]).slice(0,2).join('');
+  card.innerHTML=`
+    <div class="pc-hero ${isDeceased?'deceased':''}">
+      <div class="pc-hero-accent ${isDeceased?'danger':''}"></div>
+      ${badgeHtml}
+      <div class="pc-top-row">
+        <div class="pc-avatar" style="${isDeceased?'background:linear-gradient(135deg,var(--danger),var(--warning));':''}">${initials}</div>
+        <div style="flex:1;min-width:0">
+          <div class="pc-name">${p.name}</div>
+          <div class="pc-pills">
+            <span class="pc-pill">${p.age} yrs · ${p.gender}</span>
+            <span class="pc-pill">${p.id}</span>
+            <span class="pc-pill ${p.phoneValid?'phone-ok':'phone-bad'}"><i class="fas fa-phone" style="font-size:10px;margin-right:3px"></i>${p.phone}${!p.phoneValid?' <i class="fas fa-exclamation-triangle" style="font-size:9px"></i>':''}</span>
+            <span class="pc-pill"><i class="fas fa-envelope" style="font-size:10px;margin-right:3px"></i>${p.email}</span>
+            ${p.tags.map(t=>`<span class="pc-pill tag">${t}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="pc-address"><i class="fas fa-map-marker-alt"></i>${p.address}</div>
+    </div>
+    <div class="pc-metrics">
+      <div class="pc-metric"><div class="mn">${p.totalCalls}</div><div class="ml">Total Calls</div></div>
+      <div class="pc-metric"><div class="mn">${p.totalAppts}</div><div class="ml">Appointments</div></div>
+      <div class="pc-metric"><div class="mn">${p.totalLabs}</div><div class="ml">Lab Reports</div></div>
+      <div class="pc-metric"><div class="mn" style="font-size:12px">${p.lastCall.split(' ')[0]}</div><div class="ml">Last Call</div></div>
+      <div class="pc-metric"><div class="mn" style="font-size:12px">${p.lastVisit}</div><div class="ml">Last Visit</div></div>
+    </div>
+    <div class="pc-actions">
+      <button class="pac success" onclick="openNewCall()"><i class="fas fa-phone"></i> Call</button>
+      <button class="pac primary" onclick="openSMSModal()"><i class="fas fa-sms"></i> SMS</button>
+      <button class="pac secondary" onclick="openNoteModal()"><i class="fas fa-pen"></i> Note</button>
+      <button class="pac secondary" onclick="openNewTaskModal()"><i class="fas fa-tasks"></i> New Task</button>
+      <button class="pac primary" onclick="openCallHistModal()"><i class="fas fa-history"></i> All Notes</button>
+      ${!p.phoneValid?`<button class="pac warning" onclick="openLetterModal()"><i class="fas fa-envelope"></i> Send Letter</button>`:''}
+      ${!p.isDeceased?`<button class="pac danger" onclick="markDeceased()"><i class="fas fa-skull"></i> Deceased</button>`:''}
+    </div>
+    <div class="pc-last-note"><i class="fas fa-clock"></i> <span class="lnote-label">${p.lastCall}</span> <i class="fas fa-circle" style="font-size:5px;color:var(--border2)"></i> <span class="lnote-text">${p.lastCallNote}</span></div>
+  `;
+}
+
+// ===== TABS =====
+function switchTab(btn,tabId){
+  document.querySelectorAll('.tn-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-body').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+function renderAllTabs(){renderAppts();renderCalls();renderLabs();renderTherapy();renderNeb();renderVac();}
+
+function tlItem(cls,title,sub,meta,right=''){
+  return `<div class="tl-item ${cls}"><div class="tl-top"><span class="tl-title">${title}</span>${right}</div><div class="tl-sub">${sub}</div><div class="tl-meta">${meta}</div></div>`;
+}
+
+function renderAppts(){
+  const p=PATIENTS[currentPid];const el=document.getElementById('tab-appt');
+  if(!p.appointments.length){el.innerHTML=emptyState('calendar','No appointments found');return;}
+  el.innerHTML=p.appointments.map(a=>tlItem(a.status==='Scheduled'?'warning':'',a.type,`<i class="fas fa-user-md" style="font-size:11px;margin-right:4px;color:var(--primary)"></i>${a.doctor}`,`<i class="far fa-calendar" style="margin-right:3px"></i>${a.date}`,`<span class="fpill ${a.status==='Scheduled'?'fp-warning':'fp-success'}">${a.status}</span>`)).join('');
+}
+function renderCalls(){
+  const p=PATIENTS[currentPid];const el=document.getElementById('tab-calls');
+  if(!p.callHistory.length){el.innerHTML=emptyState('phone','No call history');return;}
+  el.innerHTML=p.callHistory.map(c=>tlItem(c.outcome==='Failed'||c.outcome==='No Answer'?'danger':'',`${c.date} — ${c.outcome}`,c.note,`<span><i class="fas fa-user" style="margin-right:3px"></i>${c.agent}</span><span>⏱ ${c.dur}</span><span>${c.type}</span>`,`<span class="fpill ${c.type==='Incoming'?'fp-success':'fp-primary'}">${c.type}</span>`)).join('');
+  el.innerHTML+=`<button class="btn-frest primary" style="width:100%;margin-top:6px;justify-content:center;border-radius:var(--r2)" onclick="openCallHistModal()"><i class="fas fa-history"></i> View All Call Notes</button>`;
+}
+function renderLabs(){
+  const p=PATIENTS[currentPid];const el=document.getElementById('tab-lab');
+  if(!p.labReports.length){el.innerHTML=emptyState('flask','No lab reports');return;}
+  el.innerHTML=p.labReports.map(l=>tlItem(l.critical?'danger':'',l.test,`Result: ${l.result}`,`<i class="far fa-calendar" style="margin-right:3px"></i>${l.date}`,`<span class="fpill ${l.critical?'fp-danger':'fp-success'}">${l.critical?'CRITICAL':'Normal'}</span>`)).join('');
+}
+function renderTherapy(){
+  const p=PATIENTS[currentPid];const el=document.getElementById('tab-therapy');
+  if(!p.therapy.length){el.innerHTML=emptyState('heartbeat','No therapy records');return;}
+  el.innerHTML=p.therapy.map(t=>tlItem('',t.type,`Duration: ${t.dur}`,`<i class="far fa-calendar" style="margin-right:3px"></i>${t.date}`,`<span class="fpill fp-success">${t.status}</span>`)).join('');
+}
+function renderNeb(){
+  const p=PATIENTS[currentPid];const el=document.getElementById('tab-neb');
+  if(!p.nebulize.length){el.innerHTML=emptyState('wind','No nebulizer records');return;}
+  el.innerHTML=p.nebulize.map(n=>tlItem('',n.med,`Dosage: ${n.dose}`,`<i class="far fa-calendar" style="margin-right:3px"></i>${n.date}`,`<span class="fpill fp-primary">${n.status}</span>`)).join('');
+}
+function renderVac(){
+  const p=PATIENTS[currentPid];const el=document.getElementById('tab-vac');
+  if(!p.vaccination.length){el.innerHTML=emptyState('syringe','No vaccination records');return;}
+  el.innerHTML=p.vaccination.map(v=>tlItem('',v.vaccine,`Dose: ${v.dose}`,`<i class="far fa-calendar" style="margin-right:3px"></i>${v.date}`,`<span class="fpill fp-success">${v.status}</span>`)).join('');
+}
+
+// ===== TASKS =====
+function switchTaskTab(btn,tab){
+  currentTaskTab=tab;
+  document.querySelectorAll('.tp-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTaskList();
+}
+function filterTasks(tab){
+  currentTaskTab=tab;
+  const tabs=['pending','completed','transferred','pinned','priority'];
+  document.querySelectorAll('.tp-tab').forEach((b,i)=>{b.classList.toggle('active',tabs[i]===tab);});
+  renderTaskList();
+}
+function renderTaskList(){
+  const el=document.getElementById('taskListEl');
+  let list=[];
+  if(currentTaskTab==='pending')list=TASKS.pending;
+  else if(currentTaskTab==='completed')list=TASKS.completed;
+  else if(currentTaskTab==='transferred')list=TASKS.transferred;
+  else if(currentTaskTab==='pinned')list=TASKS.pending.filter(t=>t.pinned);
+  else if(currentTaskTab==='priority')list=TASKS.pending.filter(t=>t.priority==='high');
+  if(!list.length){el.innerHTML=`<div class="empty-state"><i class="fas fa-check-double"></i><span>No tasks here</span></div>`;return;}
+  const isDone=currentTaskTab==='completed';
+  const isXfer=currentTaskTab==='transferred';
+  el.innerHTML=list.map(t=>{
+    const pc=t.priority==='high'?'hp':t.priority==='medium'?'mp':'lp';
+    return `<div class="task-card ${pc}" onclick="openPatientFromTask('${t.patientKey||'john'}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px">
+        <div class="tc-title">${t.pinned?'<i class="fas fa-thumbtack pin-icon" style="margin-right:4px"></i>':''}${t.title}</div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <span class="fpill ${t.priority==='high'?'fp-danger':t.priority==='medium'?'fp-warning':'fp-success'}" style="font-size:10px">${(t.priority||'med').toUpperCase()}</span>
+          ${t.type?`<span class="fpill fp-primary" style="font-size:10px">${t.type}</span>`:''}
+        </div>
+      </div>
+      <div class="tc-note">${t.note||''}</div>
+      <div class="tc-meta">
+        ${t.due?`<span><i class="far fa-clock" style="margin-right:3px"></i>${t.due}</span>`:''}
+        ${t.completedDate?`<span style="color:var(--success)"><i class="fas fa-check" style="margin-right:3px"></i>${t.completedDate}</span>`:''}
+        ${t.transferredTo?`<span style="color:var(--info)"><i class="fas fa-exchange-alt" style="margin-right:3px"></i>→ ${t.transferredTo}</span>`:''}
+        ${t.reason?`<span style="color:var(--warning)">${t.reason}</span>`:''}
+      </div>
+      ${!isDone&&!isXfer?`<div class="tc-actions" onclick="event.stopPropagation()">
+        <button class="tca success" onclick="completeTask(${t.id})"><i class="fas fa-check"></i> Complete</button>
+        <button class="tca primary" onclick="openTransferModal(${t.id})"><i class="fas fa-exchange-alt"></i> Transfer</button>
+        <button class="tca warning" onclick="openNewCall()"><i class="fas fa-phone"></i> Call</button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+function completeTask(id){const t=TASKS.pending.find(x=>x.id===id);if(t){TASKS.completed.unshift({...t,completedDate:'Today'});TASKS.pending=TASKS.pending.filter(x=>x.id!==id);renderTaskList();updateStats();}}
+function openTransferModal(id){const a=prompt('Transfer to: Mike K. / Lisa M. / Tom B.');if(a){const t=TASKS.pending.find(x=>x.id===id);if(t){TASKS.transferred.unshift({...t,transferredTo:a,reason:'Manual transfer',transferredDate:'Today'});TASKS.pending=TASKS.pending.filter(x=>x.id!==id);renderTaskList();}}}
+function updateStats(){document.getElementById('statComp').textContent=TASKS.completed.length;document.getElementById('statPend').textContent=TASKS.pending.length;}
+function saveNewTask(){TASKS.pending.unshift({id:Date.now(),title:'New Task',priority:'medium',patientKey:currentPid,due:'Today',note:'Added manually',type:'Follow-up Call',pinned:false});closeModal('modal-newtask');renderTaskList();}
+
+// ===== FOLLOW-UP =====
+function renderFollowUpList(){
+  const el=document.getElementById('fu-list');
+  const patients=Object.values(PATIENTS).filter(p=>!p.isDeceased);
+  el.innerHTML=`
+    <div class="select-bar"><input type="checkbox" id="chkAll" onchange="toggleAllFu(this)" style="accent-color:var(--primary);width:14px;height:14px"> <strong style="color:var(--primary)">Select All</strong> <span style="color:var(--text-muted)">(${patients.length} patients)</span></div>
+    ${patients.map(p=>`
+    <div class="fu-row">
+      <input type="checkbox" class="fu-chk" value="${p.id}">
+      <div>
+        <div class="fu-name">${p.name} <span class="fpill ${p.priority==='high'?'fp-danger':p.priority==='medium'?'fp-warning':'fp-success'}" style="margin-left:6px;font-size:10px">${p.priority}</span></div>
+        <div class="fu-sub">${p.id} · ${p.address.split(',')[0]} · <span style="color:${p.phoneValid?'var(--success)':'var(--danger)'}">${p.phone}</span></div>
+      </div>
+      <div class="fu-last"><div style="font-size:10px;color:var(--text-light)">Last Call</div><div style="font-weight:600;color:var(--text-dark)">${p.lastCall.split(' ')[0]}</div></div>
+      <div class="fu-note">${p.lastCallNote}</div>
+      <button class="tca primary" onclick="openPatientFromTask('${Object.keys(PATIENTS).find(k=>PATIENTS[k]===p)}');switchView('board',null)"><i class="fas fa-eye"></i> View</button>
+    </div>`).join('')}
+    <div class="fu-bulk">
+      <span style="font-size:12px;color:var(--text-muted)">With selected:</span>
+      <button class="btn-frest primary" style="padding:6px 14px;font-size:12px" onclick="saveSelectedAsToday()"><i class="fas fa-calendar-plus"></i> Add to Today's Tasks</button>
+      <button class="btn-frest outline" style="padding:6px 14px;font-size:12px"><i class="fas fa-sms"></i> Bulk SMS</button>
+    </div>`;
+}
+function toggleAllFu(cb){document.querySelectorAll('.fu-chk').forEach(c=>c.checked=cb.checked);}
+function saveSelectedAsToday(){const s=document.querySelectorAll('.fu-chk:checked');if(!s.length){alert('Please select at least one patient.');return;}alert(`✅ ${s.length} patient(s) added to today's task list.`);}
+function applyFuFilter(){renderFollowUpList();}
+
+// ===== LAST CALLS =====
+function renderLastCallsList(){
+  const el=document.getElementById('lastCallsList');
+  const allCalls=Object.values(PATIENTS).flatMap(p=>p.callHistory.filter(c=>c.agent==='Sarah J.').map(c=>({...c,patientName:p.name,patientId:p.id,patientKey:Object.keys(PATIENTS).find(k=>PATIENTS[k]===p)})));
+  allCalls.sort((a,b)=>b.date.localeCompare(a.date));
+  el.innerHTML=allCalls.map(c=>`
+    <div class="ch-item" style="cursor:pointer" onclick="openPatientFromTask('${c.patientKey}');switchView('board',null)">
+      <div class="ch-top">
+        <div><strong style="font-size:14px;color:var(--text-dark)">${c.patientName}</strong> <span style="font-size:11px;color:var(--text-muted);margin-left:6px">${c.patientId}</span></div>
+        <div style="display:flex;gap:6px">
+          <span class="fpill ${c.outcome==='Answered'||c.outcome==='Follow-up'?'fp-success':c.outcome==='Failed'||c.outcome==='No Answer'?'fp-danger':'fp-warning'}">${c.outcome}</span>
+          <span class="fpill fp-primary">${c.type}</span>
+        </div>
+      </div>
+      <div class="ch-note">${c.note}</div>
+      <div class="ch-meta"><span><i class="far fa-clock" style="margin-right:3px"></i>${c.date}</span><span>⏱ ${c.dur}</span></div>
+    </div>`).join('');
+}
+
+// ===== PATIENTS LIST =====
+function renderPatientListView(){
+  const el=document.getElementById('patientListView');
+  el.innerHTML=`<table class="dtable" style="width:100%">
+    <thead><tr><th>ID</th><th>Name</th><th>Age</th><th>Phone</th><th>Last Call</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${Object.entries(PATIENTS).map(([k,p])=>`<tr>
+      <td><span class="fpill fp-secondary">${p.id}</span></td>
+      <td><a onclick="openPatientFromTask('${k}');switchView('board',null);return false" href="#">${p.name}</a><div style="font-size:11px;color:var(--text-muted)">${p.address}</div></td>
+      <td>${p.age} · ${p.gender[0]}</td>
+      <td style="color:${p.phoneValid?'var(--success)':'var(--danger)'}"><i class="fas fa-phone" style="font-size:10px;margin-right:4px"></i>${p.phone}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${p.lastCall}</td>
+      <td><span class="fpill ${p.priority==='high'?'fp-danger':p.priority==='medium'?'fp-warning':'fp-success'}">${p.priority}</span></td>
+      <td><span class="fpill ${p.isDeceased?'fp-danger':p.status==='active'?'fp-success':'fp-secondary'}">${p.isDeceased?'Deceased':p.status}</span></td>
+      <td style="display:flex;gap:6px"><button class="tca primary" onclick="openPatientFromTask('${k}');switchView('board',null)"><i class="fas fa-eye"></i></button> <button class="tca secondary"><i class="fas fa-edit"></i></button></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+// ===== ADMIN =====
+const AGENTS=[
+  {name:'Sarah Johnson',id:'A-021',av:'SJ',grad:'#5a8dee,#7367f0',calls:142,completed:127,transferred:8,success:89,rank:1,online:true},
+  {name:'Mike Karim',id:'A-015',av:'MK',grad:'#39da8a,#00cfdd',calls:118,completed:98,transferred:12,success:83,rank:2,online:true},
+  {name:'Lisa Mahmud',id:'A-033',av:'LM',grad:'#fdac41,#ff5b5b',calls:95,completed:79,transferred:7,success:83,rank:3,online:false},
+  {name:'Tom Bashir',id:'A-041',av:'TB',grad:'#7367f0,#ce9ffc',calls:88,completed:71,transferred:15,success:81,rank:4,online:true},
+];
+
+function renderAdminPanel(){renderAdmAssign();renderAdmAgents();renderAdmFilters();renderAdmMonitor();}
+function renderAdmAssign(){
+  document.getElementById('adm-assign').innerHTML=`
+    <div class="page-card" style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <h4 style="margin-bottom:14px;font-size:13px;font-weight:600;color:var(--text-dark)">Patient Filter Criteria</h4>
+        <div class="filter-grid">
+          <div class="form-group"><label>District</label><select><option>All</option><option>Dhaka</option><option>Chittagong</option></select></div>
+          <div class="form-group"><label>Thana / Area</label><input type="text" placeholder="Gulshan, Banani…"></div>
+          <div class="form-group"><label>Gender</label><select><option>All</option><option>Male</option><option>Female</option></select></div>
+          <div class="form-group"><label>Age Range</label><select><option>All</option><option>Under 30</option><option>30–50</option><option>50–70</option><option>70+</option></select></div>
+          <div class="form-group"><label>Last Visit</label><select><option>Any</option><option>3+ months</option><option>6+ months</option></select></div>
+          <div class="form-group"><label>Last Call (days)</label><select><option>Any</option><option>7+ days</option><option>30+ days</option><option>90+ days</option></select></div>
+          <div class="form-group"><label>Missed Follow-up</label><select><option>Any</option><option>Yes — Overdue</option><option>No</option></select></div>
+          <div class="form-group"><label>Exclude Deceased</label><select><option>Yes (default)</option><option>No</option></select></div>
+          <div class="form-group"><label>Select Count</label><input type="number" placeholder="50" value="50"></div>
+        </div>
+        <button class="btn-frest primary" style="width:100%;justify-content:center"><i class="fas fa-search"></i> Filter Patients</button>
+      </div>
+      <div>
+        <h4 style="margin-bottom:14px;font-size:13px;font-weight:600;color:var(--text-dark)">Assign to Agent</h4>
+        <div class="form-group"><label>Assign To</label><select><option>Sarah Johnson (A-021)</option><option>Mike Karim (A-015)</option><option>Lisa Mahmud (A-033)</option><option>Tom Bashir (A-041)</option><option>All Agents (Distribute)</option></select></div>
+        <div class="form-group"><label>Task Type</label><select><option>Follow-up Call</option><option>Lab Report Call</option><option>Appointment Call</option><option>First Contact</option></select></div>
+        <div class="form-group"><label>Priority</label><select><option>High</option><option>Medium</option><option>Low</option></select></div>
+        <div class="form-group"><label>Due Date</label><input type="date"></div>
+        <div class="form-group"><label>Instructions</label><textarea rows="3" placeholder="Instructions for agent…"></textarea></div>
+        <button class="btn-frest success" style="width:100%;justify-content:center"><i class="fas fa-paper-plane"></i> Assign Tasks to Agent</button>
+      </div>
+    </div>`;
+}
+function renderAdmAgents(){
+  document.getElementById('adm-agents').innerHTML=`
+    <div class="page-card">
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <select style="background:#fff;border:1px solid var(--border2);border-radius:var(--r2);padding:7px 12px;color:var(--text);font-size:12px;font-family:var(--font);outline:none"><option>Today</option><option>This Week</option><option>This Month</option></select>
+        <input type="date" style="background:#fff;border:1px solid var(--border2);border-radius:var(--r2);padding:7px 12px;color:var(--text);font-size:12px;outline:none">
+        <input type="date" style="background:#fff;border:1px solid var(--border2);border-radius:var(--r2);padding:7px 12px;color:var(--text);font-size:12px;outline:none">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      ${AGENTS.map(a=>`
+        <div class="agent-card">
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+            <div class="ag-av" style="background:linear-gradient(135deg,${a.grad})">${a.av}</div>
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:13px;color:var(--text-dark);display:flex;gap:6px;align-items:center">
+                ${a.name}
+                <span class="rank-badge rank-${a.rank}">#${a.rank}</span>
+                ${a.online?`<span class="status-dot" style="font-size:10px">Online</span>`:'<span class="fpill fp-secondary" style="font-size:10px">Offline</span>'}
+              </div>
+              <div style="font-size:11px;color:var(--text-muted)">${a.id}</div>
+            </div>
+          </div>
+          <div class="ag-stats">
+            <div class="ag-stat"><div class="v">${a.calls}</div><div class="k">Calls</div></div>
+            <div class="ag-stat"><div class="v" style="color:var(--success)">${a.completed}</div><div class="k">Done</div></div>
+            <div class="ag-stat"><div class="v" style="color:var(--warning)">${a.transferred}</div><div class="k">Xferred</div></div>
+            <div class="ag-stat"><div class="v" style="color:var(--info)">${a.success}%</div><div class="k">Rate</div></div>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${a.success}%"></div></div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+}
+function renderAdmFilters(){
+  document.getElementById('adm-filters').innerHTML=`<div class="page-card">
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:14px">Advanced patient segmentation and filtering tools.</p>
+    <h4 style="margin-bottom:10px;font-size:13px;font-weight:600;color:var(--text-dark)">Quick Segments</h4>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      ${[['Not visited 3+ months','warning'],['Critical Lab Results','danger'],['Missed Follow-up','danger'],['Invalid Phone','warning'],['No calls 30+ days','primary'],['Upcoming Appointments','success']].map(([l,c])=>`
+      <button class="btn-frest outline" style="border-left:3px solid var(--${c});justify-content:flex-start;font-size:12px">${l}</button>`).join('')}
+    </div></div>`;
+}
+function renderAdmMonitor(){
+  document.getElementById('adm-monitor').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+      ${[['Active Agents','4','users','primary'],['Calls in Progress','2','phone-alt','success'],['Tasks Today','87','tasks','warning'],['Avg Call Time','3:42','clock','info']].map(([l,v,ic,c])=>`
+      <div class="page-card" style="padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:0.5px">${l}</span>
+          <div style="width:34px;height:34px;border-radius:var(--r2);background:var(--${c}-light,rgba(90,141,238,0.12));display:flex;align-items:center;justify-content:center;color:var(--${c})"><i class="fas fa-${ic}" style="font-size:13px"></i></div>
+        </div>
+        <div style="font-size:26px;font-weight:700;font-family:var(--font2);color:var(--${c})">${v}</div>
+      </div>`).join('')}
+    </div>
+    <div class="page-card">
+      <h4 style="margin-bottom:14px;font-size:13px;font-weight:600;color:var(--text-dark)">Live Agent Status</h4>
+      ${AGENTS.map(a=>`<div style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div class="ag-av" style="width:36px;height:36px;font-size:12px;background:linear-gradient(135deg,${a.grad})">${a.av}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text-dark)">${a.name}</div><div style="font-size:11px;color:var(--text-muted)">${a.online?'On a call — 2:14':'Offline'}</div></div>
+        ${a.online?`<span class="live-badge"><i class="fas fa-phone-volume"></i> Active</span>`:`<span class="fpill fp-secondary">Offline</span>`}
+      </div>`).join('')}
+    </div>`;
+}
+function switchAdminTab(btn,panel){
+  document.querySelectorAll('.adm-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.adm-panel').forEach(p=>p.classList.remove('active-panel'));
+  btn.classList.add('active');
+  document.getElementById(panel).classList.add('active-panel');
+}
+
+// ===== AGENT PROFILE =====
+function renderAgentProfile(){
+  const el=document.getElementById('agentProfileContent');
+  el.innerHTML=`<div style="display:grid;grid-template-columns:280px 1fr;gap:14px">
+    <div class="agent-card" style="text-align:center;padding:22px">
+      <div class="ag-av" style="background:linear-gradient(135deg,var(--primary),var(--purple));width:64px;height:64px;font-size:22px;margin:0 auto 12px">SJ</div>
+      <div style="font-weight:700;font-size:15px;color:var(--text-dark)">Sarah Johnson</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Senior Agent · ID: A-021</div>
+      <span class="status-dot">Online</span>
+      <div class="ag-stats" style="margin-top:14px">
+        <div class="ag-stat"><div class="v">142</div><div class="k">Total</div></div>
+        <div class="ag-stat"><div class="v" style="color:var(--success)">127</div><div class="k">Done</div></div>
+        <div class="ag-stat"><div class="v" style="color:var(--warning)">8</div><div class="k">Xferred</div></div>
+        <div class="ag-stat"><div class="v" style="color:var(--info)">89%</div><div class="k">Rate</div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="agent-card">
+        <h4 style="margin-bottom:12px;font-size:13px;font-weight:600;color:var(--text-dark)">Today's Summary</h4>
+        <div style="display:flex;gap:10px">
+          ${[['14','Completed','success'],['7','Pending','warning'],['3','Transferred','primary'],['89%','Success Rate','info']].map(([n,l,c])=>`
+          <div style="flex:1;background:var(--body-bg);border-radius:var(--r2);padding:12px;text-align:center;border:1px solid var(--border)">
+            <div style="font-size:22px;font-weight:700;font-family:var(--font2);color:var(--${c})">${n}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${l}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div class="agent-card">
+        <h4 style="margin-bottom:12px;font-size:13px;font-weight:600;color:var(--text-dark)">Active Tasks</h4>
+        ${TASKS.pending.slice(0,3).map(t=>`
+        <div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+          <span class="fpill ${t.priority==='high'?'fp-danger':t.priority==='medium'?'fp-warning':'fp-success'}" style="flex-shrink:0">${t.priority}</span>
+          <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text-dark)">${t.title}</div><div style="font-size:11px;color:var(--text-muted)">${t.note}</div></div>
+          <span style="font-size:11px;color:var(--text-light);white-space:nowrap">${t.due}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ===== NAVIGATION =====
+function switchView(viewId,navEl){
+  document.querySelectorAll('.module-view').forEach(v=>v.classList.remove('active'));
+  const el=document.getElementById('view-'+viewId);
+  if(el)el.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  if(navEl)navEl.classList.add('active');
+}
+function openPatientFromTask(key){
+  if(!PATIENTS[key])return;
+  currentPid=key;
+  renderPatientCard();
+  renderAllTabs();
+}
+function globalSearch(val){
+  val=val.toLowerCase();if(!val)return;
+  for(const[key,p]of Object.entries(PATIENTS)){
+    if(p.name.toLowerCase().includes(val)||p.phone.includes(val)||p.id.toLowerCase().includes(val)||p.address.toLowerCase().includes(val)){
+      currentPid=key;renderPatientCard();renderAllTabs();break;
+    }
+  }
+}
+
+// ===== MODALS =====
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function openNewCall(){openModal('modal-call');}
+function openSMSModal(){openModal('modal-sms');}
+function openLetterModal(){openModal('modal-letter');}
+function openCallHistModal(){
+  const p=PATIENTS[currentPid];
+  document.getElementById('callHistModalBody').innerHTML=p.callHistory.map(c=>`
+    <div class="ch-item">
+      <div class="ch-top"><strong style="font-size:13px;color:var(--text-dark)">${c.date}</strong>
+        <div style="display:flex;gap:6px">
+          <span class="fpill ${c.outcome==='Answered'||c.outcome==='Follow-up'?'fp-success':c.outcome==='Failed'||c.outcome==='No Answer'?'fp-danger':'fp-warning'}">${c.outcome}</span>
+          <span class="fpill fp-primary">${c.type}</span>
+        </div>
+      </div>
+      <div class="ch-note">${c.note}</div>
+      <div class="ch-meta"><span><i class="fas fa-user" style="margin-right:3px"></i>${c.agent}</span><span>⏱ ${c.dur}</span></div>
+    </div>`).join('')||'<div class="empty-state"><i class="fas fa-phone-slash"></i><span>No call history</span></div>';
+  openModal('modal-callhist');
+}
+function openMissingAddr(){openModal('modal-missing');}
+function openSmsLog(){openModal('modal-smslog');}
+function openNoteModal(){
+  const note=prompt('Add note for '+PATIENTS[currentPid].name+':');
+  if(note){PATIENTS[currentPid].callHistory.unshift({date:new Date().toLocaleString(),agent:'Sarah J.',dur:'0:00',type:'Note',outcome:'Note Added',note});renderAllTabs();}
+}
+function openNewTaskModal(){openModal('modal-newtask');}
+function markDeceased(){
+  if(confirm('Mark '+PATIENTS[currentPid].name+' as DECEASED? This cannot be undone.')){
+    PATIENTS[currentPid].isDeceased=true;PATIENTS[currentPid].status='deceased';PATIENTS[currentPid].tags=['Deceased'];
+    renderPatientCard();
+  }
+}
+function saveCall(){
+  const outcome=document.getElementById('callOutcome').value;
+  const note=document.getElementById('callNote').value;
+  const p=PATIENTS[currentPid];
+  p.callHistory.unshift({date:new Date().toLocaleString(),agent:'Sarah J.',dur:document.getElementById('callDuration').value||'0:00',type:document.getElementById('callType').value,outcome,note:note||'Call logged.'});
+  p.lastCall=new Date().toLocaleString();p.lastCallNote=note||outcome;p.totalCalls++;
+  if(document.getElementById('chkDeceased').checked){p.isDeceased=true;p.status='deceased';}
+  closeModal('modal-call');renderPatientCard();renderAllTabs();
+}
+function sendSMSAction(){alert('SMS sent: '+document.getElementById('smsMsg').value);closeModal('modal-sms');}
+document.getElementById('smsMsg').addEventListener('input',function(){document.getElementById('smsCount').textContent=this.value.length;});
+function fillSmsTemplate(v){
+  const t={missed:'We tried to reach you today. Please call us back at your earliest convenience.',appt:'Reminder: You have an upcoming appointment. Please confirm by calling us.',lab:'Your lab results are ready. Please contact us to discuss the findings.',fu:'This is a follow-up from your last visit. We would like to check on your health.'};
+  if(t[v])document.getElementById('smsMsg').value=t[v];
+}
+document.querySelectorAll('.overlay').forEach(o=>{o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
+function emptyState(icon,msg){return `<div class="empty-state"><i class="fas fa-${icon}"></i><span>${msg}</span></div>`;}
+
+init();
+</script>
+</body>
+</html>
