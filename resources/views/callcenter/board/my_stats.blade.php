@@ -3,12 +3,6 @@
 
 @section('page-styles')
 @include('callcenter.partials._frest_css')
-<style>
-.month-bar-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--cc-border);font-size:12px}
-.month-bar-row:last-child{border-bottom:none}
-.month-bar-fill{height:5px;border-radius:3px;background:linear-gradient(90deg,var(--cc-primary),var(--cc-purple));transition:width .6s ease}
-.month-bar-bg{flex:1;background:var(--cc-border);border-radius:3px;overflow:hidden}
-</style>
 @endsection
 
 @section('content')
@@ -17,22 +11,14 @@
   <a href="{{ route('callcenter.board') }}" class="btn-frest outline sm"><i class="fas fa-arrow-left"></i> Board</a>
 </div>
 
-{{-- ── Today Stats ──────────────────────────────────────── --}}
+{{-- ── Today Stats (computed in CallBoardController@myStats) ──────── --}}
 <div class="row mb-3 fade-in">
-  @php
-    $todayItems = [
-      ['Total Calls',   $todayStat?->total_calls ?? 0,                          'phone',       'primary'],
-      ['Completed',     $todayStat?->completed_tasks ?? 0,                       'check-circle','success'],
-      ['Transferred',   $todayStat?->transferred_tasks ?? 0,                     'exchange-alt','warning'],
-      ['Success Rate',  number_format($todayStat?->success_rate ?? 0, 1) . '%',  'chart-line',  'info'],
-    ];
-  @endphp
-  @foreach($todayItems as [$label, $val, $icon, $color])
+  @foreach($todayItems as $item)
   <div class="col-6 col-md-3 mb-3">
-    <div class="cc-stat-card {{ $color }}">
-      <div class="sc-icon"><i class="fas fa-{{ $icon }}"></i></div>
-      <div class="sc-num">{{ $val }}</div>
-      <div class="sc-label">{{ $label }} (Today)</div>
+    <div class="cc-stat-card {{ $item['color'] }}">
+      <div class="sc-icon"><i class="fas fa-{{ $item['icon'] }}"></i></div>
+      <div class="sc-num">{{ $item['value'] }}</div>
+      <div class="sc-label">{{ $item['label'] }} (Today)</div>
     </div>
   </div>
   @endforeach
@@ -51,8 +37,7 @@
         @if($monthStats->isEmpty())
           <div class="cc-empty"><i class="fas fa-chart-bar"></i><span>No stats recorded this month yet.</span></div>
         @else
-          @php $maxCalls = max($monthStats->max('total_calls'), 1); @endphp
-          @foreach($monthStats->sortBy('stat_date') as $stat)
+          @foreach($monthStats as $stat)
           <div class="month-bar-row">
             <div style="width:60px;font-weight:600;color:var(--cc-text-dark)">{{ $stat->stat_date->format('d M') }}</div>
             <div class="month-bar-bg">
@@ -84,7 +69,7 @@
       </div>
       <div class="fcard-body" style="max-height:400px;overflow-y:auto">
         @forelse($tasks as $task)
-        <div style="padding:10px 12px;background:var(--cc-body);border-left:3px solid {{ $task->priority === 'high' ? 'var(--cc-danger)' : ($task->priority === 'medium' ? 'var(--cc-warning)' : 'var(--cc-success)') }};border-radius:var(--cc-r2);margin-bottom:8px;cursor:pointer;transition:all .2s"
+        <div style="padding:10px 12px;background:var(--cc-body);border-left:3px solid {{ $task->priority_border_var }};border-radius:var(--cc-r2);margin-bottom:8px;cursor:pointer;transition:all .2s"
              onclick="window.location='{{ route('callcenter.board') }}?pid={{ $task->patient_id }}'">
           <div style="font-size:12px;font-weight:600;color:var(--cc-text-dark)">{{ $task->title }}</div>
           <div style="font-size:11px;color:var(--cc-text-muted);margin-top:3px;display:flex;gap:10px">

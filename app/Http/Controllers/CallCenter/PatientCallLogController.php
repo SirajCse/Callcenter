@@ -9,6 +9,7 @@ use App\Models\CallCenter\SmsLog;
 use App\Models\CallCenter\LetterLog;
 use App\Models\CallCenter\AgentDailyStat;
 use App\Models\User;
+use App\Services\CallCenter\DialService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,8 @@ class PatientCallLogController extends Controller
 
     /**
      * Store a new call log (and optionally complete/create task).
+     *
+     * FIX: `die` flag now sets `died=1, died_date` on User (not `is_active=false`).
      */
     public function store(Request $request)
     {
@@ -56,7 +59,7 @@ class PatientCallLogController extends Controller
             'transfer_to'          => 'nullable|exists:users,id',
             'transfer_cause'       => 'nullable|string',
             'transfer_opinion'     => 'nullable|string',
-            'priority'             => 'in:high,medium,low',
+            'priority'             => 'nullable|in:high,medium,low',
             'followup_target_date' => 'nullable|date',
             'followup_target_note' => 'nullable|string',
             'sms_sent'             => 'boolean',
@@ -72,12 +75,15 @@ class PatientCallLogController extends Controller
                 'call_count' => PatientCallLog::where('patient_id', $validated['patient_id'])->count() + 1,
             ]));
 
-            // Mark patient deceased if flagged
+            // ★ FIX: Mark patient deceased using `died` column (not is_active)
             if (!empty($validated['die'])) {
-                User::where('id', $validated['patient_id'])->update(['is_active' => false]);
+                User::where('id', $validated['patient_id'])->update([
+                    'died'      => 1,
+                    'died_date' => today(),
+                ]);
             }
 
-            // Complete linked task
+            // Complete linked task if call was answered
             if (!empty($validated['task_id']) && !empty($validated['receive'])) {
                 Task::where('id', $validated['task_id'])->update([
                     'status'       => 'completed',
@@ -105,14 +111,16 @@ class PatientCallLogController extends Controller
 
             // Log SMS if flagged
             if (!empty($validated['sms_sent'])) {
+                $patient = User::find($validated['patient_id']);
                 SmsLog::create([
-                    'patient_id'  => $validated['patient_id'],
-                    'agent_id'    => Auth::id(),
-                    'task_id'     => $validated['task_id'] ?? null,
-                    'call_log_id' => $log->id,
-                    'phone_number'=> $validated['contact_info'] ?? '',
-                    'message'     => SmsLog::TEMPLATES['missed'],
-                    'status'      => 'pending',
+                    'patient_id'   => $validated['patient_id'],
+                    'agent_id'     => Auth::id(),
+                    'task_id'      => $validated['task_id'] ?? null,
+                    'call_log_id'  => $log->id,
+                    'phone_number' => $patient?->phone ?? '',
+                    'message'      => SmsLog::TEMPLATES['missed'],
+                    'status'       => 'sent',
+                    'sent_at'      => now(),
                 ]);
             }
 
@@ -120,13 +128,13 @@ class PatientCallLogController extends Controller
             if (!empty($validated['letter_sent'])) {
                 $patient = User::find($validated['patient_id']);
                 LetterLog::create([
-                    'patient_id'      => $validated['patient_id'],
-                    'agent_id'        => Auth::id(),
-                    'task_id'         => $validated['task_id'] ?? null,
-                    'call_log_id'     => $log->id,
-                    'delivery_address'=> $patient->address ?? '',
-                    'reason'          => 'invalid_phone',
-                    'status'          => 'pending',
+                    'patient_id'       => $validated['patient_id'],
+                    'agent_id'         => Auth::id(),
+                    'task_id'          => $validated['task_id'] ?? null,
+                    'call_log_id'      => $log->id,
+                    'delivery_address' => $patient?->address ?? '',
+                    'reason'           => 'invalid_phone',
+                    'status'           => 'queued',
                 ]);
             }
 
@@ -135,7 +143,7 @@ class PatientCallLogController extends Controller
             DB::commit();
 
             if ($request->ajax()) {
-                return response()->json(['success' => true, 'log' => $log->load('caller')]);
+                return response()->json(['success' => true, 'log' => $log->load('caller'), 'message' => 'Call logged successfully.']);
             }
 
             return back()->with('success', 'Call logged successfully.');
@@ -150,6 +158,41 @@ class PatientCallLogController extends Controller
     }
 
     /**
+     * ★ NEW: Update a call log's outcome after auto-dial.
+     * POST /callcenter/calllogs/{callLog}/outcome
+     */
+    public function updateOutcome(Request $request, PatientCallLog $callLog, DialService $dialer)
+    {
+        $validated = $request->validate([
+            'caller_opinion'  => 'required|string',
+            'duration'        => 'nullable|integer',
+            'call_note'       => 'nullable|string',
+            'receive'         => 'boolean',
+            'die'             => 'boolean',
+            'transfer_to'     => 'nullable|exists:users,id',
+            'transfer_cause'  => 'nullable|string',
+        ]);
+
+        $log = $dialer->updateOutcome($callLog->id, $validated);
+
+        if (! $log) {
+            return response()->json(['success' => false, 'message' => 'Call log not found.'], 404);
+        }
+
+        // Mark patient deceased if flagged
+        if (!empty($validated['die'])) {
+            User::where('id', $log->patient_id)->update([
+                'died'      => 1,
+                'died_date' => today(),
+            ]);
+        }
+
+        AgentDailyStat::recalculate(Auth::id());
+
+        return response()->json(['success' => true, 'log' => $log, 'message' => 'Call outcome updated.']);
+    }
+
+    /**
      * Full call history for a patient (modal).
      */
     public function history(Request $request, $patientId)
@@ -161,7 +204,6 @@ class PatientCallLogController extends Controller
             ->latest('call_date')
             ->get();
 
-        // Which agents called this patient
         $otherAgentCalls = PatientCallLog::with('caller')
             ->where('patient_id', $patientId)
             ->where('call_by', '!=', Auth::id())

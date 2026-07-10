@@ -3,63 +3,6 @@
 
 @section('page-styles')
 @include('callcenter.partials._frest_css')
-<style>
-/* ── Stat row ─────────────────────────────────────────── */
-.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
-@media(max-width:992px){.stat-row{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:576px){.stat-row{grid-template-columns:repeat(2,1fr)}}
-
-/* ── Tab nav ──────────────────────────────────────────── */
-.task-tabs{display:flex;gap:4px;padding:10px 14px;border-bottom:1px solid var(--cc-border);background:#fafafa;overflow-x:auto;flex-wrap:nowrap}
-.task-tabs::-webkit-scrollbar{height:0}
-.ttab{padding:7px 16px;border-radius:var(--cc-r2);border:1px solid var(--cc-border);background:#fff;font-size:12px;font-weight:600;color:var(--cc-text-muted);cursor:pointer;transition:all .2s;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
-.ttab:hover{border-color:var(--cc-primary);color:var(--cc-primary);background:var(--cc-primary-light);text-decoration:none}
-.ttab.active{background:var(--cc-primary);color:#fff;border-color:var(--cc-primary);box-shadow:0 4px 12px rgba(90,141,238,.35)}
-
-/* ── Priority indicator ───────────────────────────────── */
-.prio-bar{width:3px;height:100%;border-radius:2px;position:absolute;left:0;top:0}
-.prio-high{background:var(--cc-danger)}
-.prio-medium{background:var(--cc-warning)}
-.prio-low{background:var(--cc-success)}
-.prio-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
-.prio-dot.high{background:var(--cc-danger)}
-.prio-dot.medium{background:var(--cc-warning)}
-.prio-dot.low{background:var(--cc-success)}
-
-/* ── Table ────────────────────────────────────────────── */
-#tasksTable{font-size:12px;width:100%!important}
-#tasksTable thead th{background:#fafafa;color:var(--cc-text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;border-bottom:2px solid var(--cc-border);border-top:none}
-#tasksTable tbody td{padding:10px 12px;vertical-align:middle;color:var(--cc-text);border-top:1px solid var(--cc-border)}
-#tasksTable tbody tr{position:relative}
-#tasksTable tbody tr:hover td{background:rgba(90,141,238,.03)}
-.overdue-row td{background:rgba(255,91,91,.03)!important}
-
-/* ── Action buttons ───────────────────────────────────── */
-.action-bar{display:flex;gap:4px;flex-wrap:wrap}
-.btn-icon{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:none;cursor:pointer;transition:all .2s;font-size:11px;text-decoration:none}
-.btn-icon.success{background:var(--cc-success-light);color:var(--cc-success)}
-.btn-icon.success:hover{background:var(--cc-success);color:#fff}
-.btn-icon.primary{background:var(--cc-primary-light);color:var(--cc-primary)}
-.btn-icon.primary:hover{background:var(--cc-primary);color:#fff}
-.btn-icon.warning{background:var(--cc-warning-light);color:var(--cc-warning)}
-.btn-icon.warning:hover{background:var(--cc-warning);color:#fff}
-.btn-icon.outline{background:rgba(71,95,123,.08);color:var(--cc-text-muted)}
-.btn-icon.outline:hover{background:var(--cc-primary-light);color:var(--cc-primary)}
-.btn-icon.danger{background:var(--cc-danger-light);color:var(--cc-danger)}
-.btn-icon.danger:hover{background:var(--cc-danger);color:#fff}
-
-/* ── Modal ────────────────────────────────────────────── */
-.modal-content{border:none;border-radius:var(--cc-r3);box-shadow:0 24px 48px rgba(0,0,0,.18)}
-.modal-header{border-bottom:1px solid var(--cc-border);padding:14px 18px;border-radius:var(--cc-r3) var(--cc-r3) 0 0}
-.modal-footer{padding:12px 18px;border-top:1px solid var(--cc-border);border-radius:0 0 var(--cc-r3) var(--cc-r3)}
-
-/* ── DataTables ───────────────────────────────────────── */
-.dataTables_wrapper .dataTables_length select,
-.dataTables_wrapper .dataTables_filter input{height:32px;border-radius:var(--cc-r2);border:1px solid var(--cc-border2);padding:4px 10px;font-size:12px}
-.dataTables_wrapper .dataTables_paginate .paginate_button{padding:5px 10px;border-radius:var(--cc-r);font-size:12px}
-.dataTables_wrapper .dataTables_paginate .paginate_button.current{background:var(--cc-primary)!important;border-color:var(--cc-primary)!important;color:#fff!important}
-.dataTables_wrapper .dataTables_info,.dataTables_wrapper label{font-size:11px;color:var(--cc-text-muted)}
-</style>
 @endsection
 
 @section('content')
@@ -74,49 +17,40 @@
     </div>
   </div>
 
-  {{-- Stat Cards --}}
-  @php
-    $allTasks   = \App\Models\CallCenter\Task::forAgent(auth()->id());
-    $statPending     = (clone $allTasks)->pending()->count();
-    $statCompleted   = (clone $allTasks)->completed()->count();
-    $statTransferred = (clone $allTasks)->transferred()->count();
-    $statPinned      = (clone $allTasks)->pinned()->pending()->count();
-    $statHigh        = (clone $allTasks)->highPriority()->pending()->count();
-    $statOverdue     = (clone $allTasks)->pending()->where('due_date','<',today())->count();
-  @endphp
+  {{-- Stat Cards (computed in TaskController@index) --}}
   <div class="stat-row">
     <div class="cc-stat-card warning" onclick="switchTab('pending')">
       <div class="sc-icon"><i class="fas fa-clock"></i></div>
-      <div class="sc-num">{{ $statPending }}</div>
+      <div class="sc-num">{{ $stats['pending'] }}</div>
       <div class="sc-label">Pending</div>
     </div>
     <div class="cc-stat-card success" onclick="switchTab('completed')">
       <div class="sc-icon"><i class="fas fa-check-circle"></i></div>
-      <div class="sc-num">{{ $statCompleted }}</div>
+      <div class="sc-num">{{ $stats['completed'] }}</div>
       <div class="sc-label">Completed</div>
     </div>
     <div class="cc-stat-card info" onclick="switchTab('transferred')">
       <div class="sc-icon"><i class="fas fa-exchange-alt"></i></div>
-      <div class="sc-num">{{ $statTransferred }}</div>
+      <div class="sc-num">{{ $stats['transferred'] }}</div>
       <div class="sc-label">Transferred</div>
     </div>
     <div class="cc-stat-card primary" onclick="switchTab('pinned')">
       <div class="sc-icon"><i class="fas fa-thumbtack"></i></div>
-      <div class="sc-num">{{ $statPinned }}</div>
+      <div class="sc-num">{{ $stats['pinned'] }}</div>
       <div class="sc-label">Pinned</div>
     </div>
     <div class="cc-stat-card danger" onclick="switchTab('priority')">
       <div class="sc-icon"><i class="fas fa-exclamation-triangle"></i></div>
-      <div class="sc-num">{{ $statHigh }}</div>
+      <div class="sc-num">{{ $stats['priority'] }}</div>
       <div class="sc-label">High Priority</div>
     </div>
   </div>
 
   {{-- Overdue alert --}}
-  @if($statOverdue > 0)
+  @if($stats['overdue'] > 0)
   <div style="background:var(--cc-danger-light);border:1px solid rgba(255,91,91,.2);border-radius:var(--cc-r2);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--cc-danger);display:flex;align-items:center;gap:8px">
     <i class="fas fa-exclamation-circle"></i>
-    <strong>{{ $statOverdue }} overdue task(s)</strong> — past their due date and still pending.
+    <strong>{{ $stats['overdue'] }} overdue task(s)</strong> — past their due date and still pending.
     <a href="{{ route('callcenter.tasks.index', ['tab'=>'pending']) }}" style="color:var(--cc-danger);text-decoration:underline;margin-left:4px">View all pending</a>
   </div>
   @endif
@@ -126,20 +60,11 @@
 
     {{-- Tab Nav --}}
     <div class="task-tabs">
-      @php
-        $tabs = [
-          'pending'     => ['📋', 'Pending',     $statPending],
-          'completed'   => ['✅', 'Completed',   $statCompleted],
-          'transferred' => ['🔄', 'Transferred', $statTransferred],
-          'pinned'      => ['📌', 'Pinned',      $statPinned],
-          'priority'    => ['⚠️', 'Priority',    $statHigh],
-        ];
-      @endphp
-      @foreach($tabs as $key => [$icon, $label, $count])
+      @foreach($tabs as $key => $meta)
       <a href="{{ route('callcenter.tasks.index', ['tab' => $key]) }}"
          class="ttab {{ $tab === $key ? 'active' : '' }}">
-        {{ $icon }} {{ $label }}
-        <span style="background:{{ $tab === $key ? 'rgba(255,255,255,.25)' : 'var(--cc-border)' }};padding:1px 7px;border-radius:20px;font-size:10px">{{ $count }}</span>
+        {{ $meta['icon'] }} {{ $meta['label'] }}
+        <span style="background:{{ $tab === $key ? 'rgba(255,255,255,.25)' : 'var(--cc-border)' }};padding:1px 7px;border-radius:20px;font-size:10px">{{ $meta['count'] }}</span>
       </a>
       @endforeach
     </div>
@@ -162,10 +87,7 @@
           </thead>
           <tbody>
             @forelse($tasks as $task)
-            @php
-              $isOverdue = $task->status === 'pending' && $task->due_date && $task->due_date->lt(today());
-            @endphp
-            <tr class="{{ $isOverdue ? 'overdue-row' : '' }}">
+            <tr class="{{ $task->is_overdue ? 'overdue-row' : '' }}">
               <td style="color:var(--cc-text-muted)">{{ $loop->iteration }}</td>
               <td>
                 <div style="display:flex;align-items:flex-start;gap:6px">
@@ -195,18 +117,17 @@
               </td>
               <td><span class="fpill fp-primary">{{ \App\Models\CallCenter\Task::TYPES[$task->task_type] ?? $task->task_type }}</span></td>
               <td>
-                @php $pc = ['high'=>'fp-danger','medium'=>'fp-warning','low'=>'fp-success']; @endphp
-                <span class="fpill {{ $pc[$task->priority] ?? 'fp-secondary' }}">
+                <span class="fpill {{ $priorityPillClasses[$task->priority] ?? 'fp-secondary' }}">
                   <span class="prio-dot {{ $task->priority }}"></span>
                   {{ ucfirst($task->priority) }}
                 </span>
               </td>
               <td>
                 @if($task->due_date)
-                  <span style="font-size:12px;color:{{ $isOverdue ? 'var(--cc-danger)' : 'var(--cc-text-muted)' }};font-weight:{{ $isOverdue ? '600' : '400' }}">
+                  <span style="font-size:12px;color:{{ $task->is_overdue ? 'var(--cc-danger)' : 'var(--cc-text-muted)' }};font-weight:{{ $task->is_overdue ? '600' : '400' }}">
                     {{ $task->due_date->format('d M Y') }}
                   </span>
-                  @if($isOverdue)
+                  @if($task->is_overdue)
                   <div style="font-size:10px;color:var(--cc-danger)"><i class="fas fa-exclamation-circle"></i> Overdue</div>
                   @endif
                 @else
@@ -214,8 +135,7 @@
                 @endif
               </td>
               <td>
-                @php $sc = ['pending'=>'fp-warning','completed'=>'fp-success','transferred'=>'fp-info','cancelled'=>'fp-danger']; @endphp
-                <span class="fpill {{ $sc[$task->status] ?? 'fp-secondary' }}">{{ ucfirst($task->status) }}</span>
+                <span class="fpill {{ $statusPillClasses[$task->status] ?? 'fp-secondary' }}">{{ ucfirst($task->status) }}</span>
                 @if($task->completed_at)
                   <div class="td-sub">{{ $task->completed_at->format('d M, h:i A') }}</div>
                 @endif
@@ -268,7 +188,7 @@
         <div class="form-group mb-2">
           <label class="filter-label">Transfer To</label>
           <select id="transferTo" class="form-control form-control-sm">
-            @foreach(\App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent','supervisor']))->where('id','!=',auth()->id())->get() as $ag)
+            @foreach($transferAgents as $ag)
             <option value="{{ $ag->id }}">{{ $ag->name }}</option>
             @endforeach
           </select>
@@ -290,6 +210,7 @@
 @endsection
 
 @section('page-scripts')
+@include('callcenter.partials._frest_js_init')
 <script>
 $(document).ready(function() {
     if ($.fn.DataTable.isDataTable('#tasksTable')) $('#tasksTable').DataTable().destroy();
@@ -307,17 +228,22 @@ function switchTab(tab) {
     window.location = '{{ route("callcenter.tasks.index") }}?tab=' + tab;
 }
 
+// Route templates — {id} is replaced per call below.
+const ROUTE_TASK_COMPLETE  = '{{ route("callcenter.tasks.complete", ["task" => "__ID__"]) }}';
+const ROUTE_TASK_PIN       = '{{ route("callcenter.tasks.pin", ["task" => "__ID__"]) }}';
+const ROUTE_TASK_TRANSFER  = '{{ route("callcenter.tasks.transfer", ["task" => "__ID__"]) }}';
+
 function completeTask(id) {
     if (!confirm('Mark this task as completed?')) return;
-    $.post('/callcenter/tasks/' + id + '/complete', {_token: '{{ csrf_token() }}'},
-        function(res) {
-            if (res.success) { toastr.success(res.message); location.reload(); }
-        }).fail(function(xhr) { toastr.error(xhr.responseJSON?.message ?? 'Error'); });
+    $.post(ROUTE_TASK_COMPLETE.replace('__ID__', id))
+        .done(function(res) { if (res.success) { toastr.success(res.message); location.reload(); } })
+        .fail(function(xhr) { toastr.error(xhr.responseJSON?.message ?? 'Could not complete task.'); });
 }
 
 function pinTask(id) {
-    $.post('/callcenter/tasks/' + id + '/pin', {_token: '{{ csrf_token() }}'},
-        function(res) { if (res.success) location.reload(); });
+    $.post(ROUTE_TASK_PIN.replace('__ID__', id))
+        .done(function(res) { if (res.success) location.reload(); })
+        .fail(function(xhr) { toastr.error(xhr.responseJSON?.message ?? 'Could not update pin.'); });
 }
 
 function openTransfer(id) {
@@ -327,11 +253,13 @@ function openTransfer(id) {
 
 function submitTransfer() {
     var id = $('#transferTaskId').val();
-    $.post('/callcenter/tasks/' + id + '/transfer', {
-        _token: '{{ csrf_token() }}',
-        transferred_to: $('#transferTo').val(),
+    var transferTo = $('#transferTo').val();
+    if (!transferTo) { toastr.warning('Select an agent to transfer to.'); return; }
+
+    $.post(ROUTE_TASK_TRANSFER.replace('__ID__', id), {
+        transferred_to: transferTo,
         transfer_reason: $('#transferReason').val()
-    }, function(res) {
+    }).done(function(res) {
         if (res.success) {
             toastr.success(res.message);
             $('#modalTransfer').modal('hide');

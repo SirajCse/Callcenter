@@ -3,31 +3,6 @@
 
 @section('page-styles')
 @include('callcenter.partials._frest_css')
-<style>
-.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
-@media(max-width:768px){.stat-row{grid-template-columns:repeat(2,1fr)}}
-
-.filters-card{background:#fff;border:1px solid var(--cc-border);border-radius:var(--cc-r2);padding:12px 14px;margin-bottom:12px;box-shadow:var(--cc-shadow-sm)}
-.filters-grid{display:grid;grid-template-columns:repeat(3,1fr) auto;gap:8px;align-items:end}
-@media(max-width:768px){.filters-grid{grid-template-columns:repeat(2,1fr)}}
-.filters-grid .form-control,.filters-grid select,.filters-grid input{height:34px;font-size:12px;border-radius:var(--cc-r2);border:1px solid var(--cc-border2);padding:6px 10px}
-.filters-grid .form-control:focus,.filters-grid select:focus,.filters-grid input:focus{border-color:var(--cc-primary);box-shadow:0 0 0 3px rgba(90,141,238,.12);outline:none}
-
-#smsTable{font-size:12px;width:100%!important}
-#smsTable thead th{background:#fafafa;color:var(--cc-text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;border-bottom:2px solid var(--cc-border);border-top:none}
-#smsTable tbody td{padding:10px 12px;vertical-align:middle;color:var(--cc-text);border-top:1px solid var(--cc-border)}
-#smsTable tbody tr:hover td{background:rgba(90,141,238,.03)}
-
-.btn-icon{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:none;cursor:pointer;transition:all .2s;font-size:11px}
-.btn-icon.info{background:var(--cc-info-light);color:var(--cc-info)}
-.btn-icon.info:hover{background:var(--cc-info);color:#fff}
-
-.dataTables_wrapper .dataTables_length select,
-.dataTables_wrapper .dataTables_filter input{height:32px;border-radius:var(--cc-r2);border:1px solid var(--cc-border2);padding:4px 10px;font-size:12px}
-.dataTables_wrapper .dataTables_paginate .paginate_button{padding:5px 10px;border-radius:var(--cc-r);font-size:12px}
-.dataTables_wrapper .dataTables_paginate .paginate_button.current{background:var(--cc-primary)!important;border-color:var(--cc-primary)!important;color:#fff!important}
-.dataTables_wrapper .dataTables_info,.dataTables_wrapper label{font-size:11px;color:var(--cc-text-muted)}
-</style>
 @endsection
 
 @section('content')
@@ -42,32 +17,25 @@
   </div>
 
   {{-- Stat Cards --}}
-  @php
-    $allSms    = \App\Models\CallCenter\SmsLog::query();
-    $totalSms  = (clone $allSms)->count();
-    $sentSms   = (clone $allSms)->where('status','sent')->count();
-    $failedSms = (clone $allSms)->where('status','failed')->count();
-    $pendSms   = (clone $allSms)->where('status','pending')->count();
-  @endphp
   <div class="stat-row">
     <div class="cc-stat-card primary">
       <div class="sc-icon"><i class="fas fa-comment-alt"></i></div>
-      <div class="sc-num">{{ $totalSms }}</div>
+      <div class="sc-num">{{ $stats['total'] }}</div>
       <div class="sc-label">Total SMS</div>
     </div>
     <div class="cc-stat-card success">
       <div class="sc-icon"><i class="fas fa-check-circle"></i></div>
-      <div class="sc-num">{{ $sentSms }}</div>
+      <div class="sc-num">{{ $stats['sent'] }}</div>
       <div class="sc-label">Sent</div>
     </div>
     <div class="cc-stat-card danger">
       <div class="sc-icon"><i class="fas fa-times-circle"></i></div>
-      <div class="sc-num">{{ $failedSms }}</div>
+      <div class="sc-num">{{ $stats['failed'] }}</div>
       <div class="sc-label">Failed</div>
     </div>
     <div class="cc-stat-card warning">
       <div class="sc-icon"><i class="fas fa-clock"></i></div>
-      <div class="sc-num">{{ $pendSms }}</div>
+      <div class="sc-num">{{ $stats['pending'] }}</div>
       <div class="sc-label">Pending</div>
     </div>
   </div>
@@ -143,8 +111,7 @@
                 @endif
               </td>
               <td>
-                @php $sc = ['delivered'=>'fp-success','failed'=>'fp-danger','sent'=>'fp-primary','pending'=>'fp-warning']; @endphp
-                <span class="fpill {{ $sc[$log->status] ?? 'fp-secondary' }}">{{ ucfirst($log->status) }}</span>
+                <span class="fpill {{ $statusPillClasses[$log->status] ?? 'fp-secondary' }}">{{ ucfirst($log->status) }}</span>
               </td>
               <td>
                 @if($log->is_callback_received)
@@ -190,6 +157,7 @@
 @endsection
 
 @section('page-scripts')
+@include('callcenter.partials._frest_js_init')
 <script>
 $(document).ready(function() {
     if ($.fn.DataTable.isDataTable('#smsTable')) $('#smsTable').DataTable().destroy();
@@ -205,8 +173,8 @@ $(document).ready(function() {
 
 function resendSms(id, btn) {
     $(btn).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-    $.post('{{ url("callcenter/sms") }}/' + id + '/resend', {_token: '{{ csrf_token() }}'},
-        function(res) {
+    $.post('{{ route("callcenter.sms.resend", ["sms" => "__ID__"]) }}'.replace('__ID__', id))
+        .done(function(res) {
             if (res.success) { toastr.success('SMS resent.'); location.reload(); }
         }).fail(function() {
             toastr.error('Resend failed.');

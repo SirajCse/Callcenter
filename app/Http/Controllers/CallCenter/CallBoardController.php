@@ -12,6 +12,7 @@ use App\Models\Lab\Group;
 use App\Models\Lab\Therapy;
 use App\Models\Lab\Nebulize;
 use App\Models\Lab\Sale;
+use App\Services\CallCenter\DialService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -24,18 +25,27 @@ class CallBoardController extends Controller
     {
         $agent   = Auth::user();
         $agentId = $agent?->id ?? 0;
-        $search  = $request->get('q');
 
-        // ── Patient from search or first pending task ──────────
+        // ── Patient from URL ?pid= or first pending task ──────────
         $patient = null;
+        $pid     = $request->get('pid');
 
-        // Only load patient from URL parameter ?pid=
-        $pid = $request->get('pid');
         if ($pid) {
             $patient = User::find($pid);
+        } else {
+            $firstTask = Task::forAgent($agentId)->pending()
+                ->orderByRaw("FIELD(priority,'high','medium','low')")
+                ->first();
+            if ($firstTask) {
+                $patient = $firstTask->patient;
+            } else {
+                $patient = User::whereHas('roles', fn($q) => $q->where('name', 'patient'))
+                    ->where('died', 0)
+                    ->first();
+            }
         }
 
-        // ── Load patient tab data ──────────────────────────────
+        // ── Load patient tab data ──────────────────────────────────
         $appointments = collect();
         $callLogs     = collect();
         $labGroups    = collect();
@@ -52,15 +62,16 @@ class CallBoardController extends Controller
             $vaccinations = Sale::where('patient_id', $patient->id)->latest('date')->take(10)->get();
         }
 
-        // ── Today stats ────────────────────────────────────────
+        // ── Today stats ────────────────────────────────────────────
         $stats = [
             'completed'   => $agentId ? Task::forAgent($agentId)->completed()->whereDate('completed_at', today())->count() : 0,
             'pending'     => $agentId ? Task::forAgent($agentId)->pending()->count() : 0,
             'transferred' => $agentId ? Task::forAgent($agentId)->transferred()->whereDate('transferred_at', today())->count() : 0,
             'followup'    => $agentId ? Task::forAgent($agentId)->pending()->where('task_type', 'followup_call')->count() : 0,
+            'missed'      => $agentId ? PatientCallLog::where('call_by', $agentId)->whereIn('caller_opinion', ['no_answer','busy','out_of_reach','wrong_number'])->count() : 0,
         ];
 
-        // ── Task tabs ──────────────────────────────────────────
+        // ── Task tabs ──────────────────────────────────────────────
         $tasks = [
             'pending'     => $agentId ? Task::with('patient')->forAgent($agentId)->pending()
                                 ->orderByRaw("FIELD(priority,'high','medium','low')")->get() : collect(),
@@ -72,9 +83,13 @@ class CallBoardController extends Controller
             'priority'    => $agentId ? Task::with('patient')->forAgent($agentId)->pending()->highPriority()->get() : collect(),
         ];
 
+        // ── Agents for transfer dropdown ───────────────────────────
+        $agents = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent', 'supervisor']))
+            ->where('id', '!=', $agentId)->get(['id', 'name']);
+
         return view('callcenter.board.index', compact(
-            'agent', 'patient', 'stats', 'tasks', 'search',
-            'appointments', 'callLogs', 'labGroups', 'therapies', 'nebulizes', 'vaccinations'
+            'agent', 'patient', 'stats', 'tasks', 'appointments', 'callLogs',
+            'labGroups', 'therapies', 'nebulizes', 'vaccinations', 'agents'
         ));
     }
 
@@ -104,10 +119,26 @@ class CallBoardController extends Controller
 
         return view('callcenter.board.index', array_merge($data, [
             'agent'  => Auth::user(),
-            'stats'  => $this->agentStats(Auth::id()),
-            'tasks'  => $this->agentTasks(Auth::id()),
-            'search' => null,
+            'agents' => User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent','supervisor']))->get(['id','name']),
         ]));
+    }
+
+    /**
+     * ★ NEW: Auto-dial a patient via MikoPBX (AMI Originate).
+     *
+     * POST /callcenter/dial  { patient_id, task_id? }
+     */
+    public function dialPatient(Request $request, DialService $dialer)
+    {
+        $request->validate([
+            'patient_id' => 'required|exists:users,id',
+            'task_id'    => 'nullable|exists:tasks,id',
+        ]);
+
+        $patient = User::findOrFail($request->patient_id);
+        $result  = $dialer->dialPatient($patient, $request->task_id);
+
+        return response()->json($result, $result['success'] ? 200 : 422);
     }
 
     /**
@@ -136,30 +167,5 @@ class CallBoardController extends Controller
         $tasks = Task::with('patient')->forAgent($agent->id)->pending()->get();
 
         return view('callcenter.board.my_stats', compact('agent', 'todayStat', 'monthStats', 'tasks'));
-    }
-
-    // ── Private helpers ──────────────────────────────────────────
-    private function agentStats(int $agentId): array
-    {
-        return [
-            'completed'   => Task::forAgent($agentId)->completed()->whereDate('completed_at', today())->count(),
-            'pending'     => Task::forAgent($agentId)->pending()->count(),
-            'transferred' => Task::forAgent($agentId)->transferred()->whereDate('transferred_at', today())->count(),
-            'followup'    => Task::forAgent($agentId)->pending()->where('task_type', 'followup_call')->count(),
-        ];
-    }
-
-    private function agentTasks(int $agentId): array
-    {
-        return [
-            'pending'     => Task::with('patient')->forAgent($agentId)->pending()
-                                ->orderByRaw("FIELD(priority,'high','medium','low')")->get(),
-            'completed'   => Task::with('patient')->forAgent($agentId)->completed()
-                                ->whereDate('completed_at', today())->latest('completed_at')->get(),
-            'transferred' => Task::with('patient','transferredTo')->forAgent($agentId)->transferred()
-                                ->latest('transferred_at')->get(),
-            'pinned'      => Task::with('patient')->forAgent($agentId)->pinned()->pending()->get(),
-            'priority'    => Task::with('patient')->forAgent($agentId)->pending()->highPriority()->get(),
-        ];
     }
 }

@@ -3,37 +3,6 @@
 
 @section('page-styles')
 @include('callcenter.partials._frest_css')
-<style>
-.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
-@media(max-width:768px){.stat-row{grid-template-columns:repeat(2,1fr)}}
-
-.filters-card{background:#fff;border:1px solid var(--cc-border);border-radius:var(--cc-r2);padding:12px 14px;margin-bottom:12px;box-shadow:var(--cc-shadow-sm)}
-.filters-grid{display:grid;grid-template-columns:repeat(5,1fr) auto;gap:8px;align-items:end}
-@media(max-width:992px){.filters-grid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:576px){.filters-grid{grid-template-columns:repeat(2,1fr)}}
-.filters-grid .form-control,.filters-grid select,.filters-grid input{height:34px;font-size:12px;border-radius:var(--cc-r2);border:1px solid var(--cc-border2);padding:6px 10px}
-.filters-grid .form-control:focus,.filters-grid select:focus,.filters-grid input:focus{border-color:var(--cc-primary);box-shadow:0 0 0 3px rgba(90,141,238,.12);outline:none}
-
-.bulk-bar{background:var(--cc-primary-light);border:1px solid rgba(90,141,238,.2);border-radius:var(--cc-r2);padding:10px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;font-size:12px}
-
-#followupTable{font-size:12px;width:100%!important}
-#followupTable thead th{background:#fafafa;color:var(--cc-text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;border-bottom:2px solid var(--cc-border);border-top:none}
-#followupTable tbody td{padding:10px 12px;vertical-align:middle;color:var(--cc-text);border-top:1px solid var(--cc-border)}
-#followupTable tbody tr:hover td{background:rgba(90,141,238,.03)}
-
-.action-bar{display:flex;gap:4px}
-.btn-icon{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:none;cursor:pointer;transition:all .2s;font-size:11px;text-decoration:none}
-.btn-icon.primary{background:var(--cc-primary-light);color:var(--cc-primary)}
-.btn-icon.primary:hover{background:var(--cc-primary);color:#fff}
-.btn-icon.outline{background:rgba(71,95,123,.08);color:var(--cc-text-muted)}
-.btn-icon.outline:hover{background:var(--cc-primary-light);color:var(--cc-primary)}
-
-.dataTables_wrapper .dataTables_length select,
-.dataTables_wrapper .dataTables_filter input{height:32px;border-radius:var(--cc-r2);border:1px solid var(--cc-border2);padding:4px 10px;font-size:12px}
-.dataTables_wrapper .dataTables_paginate .paginate_button{padding:5px 10px;border-radius:var(--cc-r);font-size:12px}
-.dataTables_wrapper .dataTables_paginate .paginate_button.current{background:var(--cc-primary)!important;border-color:var(--cc-primary)!important;color:#fff!important}
-.dataTables_wrapper .dataTables_info,.dataTables_wrapper label{font-size:11px;color:var(--cc-text-muted)}
-</style>
 @endsection
 
 @section('content')
@@ -45,32 +14,26 @@
     <a href="{{ route('callcenter.board') }}" class="btn-frest outline sm"><i class="fas fa-arrow-left"></i> Board</a>
   </div>
 
-  {{-- Stat Cards --}}
-  @php
-    $totalPatients = $patients->total();
-    $notCalled     = $patients->getCollection()->filter(fn($p) => !$p->latestCallLog)->count();
-    $withPhone     = $patients->getCollection()->filter(fn($p) => $p->phone && $p->phone !== 'INVALID')->count();
-    $noPhone       = $patients->getCollection()->filter(fn($p) => !$p->phone || $p->phone === 'INVALID')->count();
-  @endphp
+  {{-- Stat Cards (computed in FollowUpController@index) --}}
   <div class="stat-row">
     <div class="cc-stat-card primary">
       <div class="sc-icon"><i class="fas fa-users"></i></div>
-      <div class="sc-num">{{ $totalPatients }}</div>
+      <div class="sc-num">{{ $stats['total'] }}</div>
       <div class="sc-label">Total Patients</div>
     </div>
     <div class="cc-stat-card warning">
       <div class="sc-icon"><i class="fas fa-phone-slash"></i></div>
-      <div class="sc-num">{{ $notCalled }}</div>
+      <div class="sc-num">{{ $stats['not_called'] }}</div>
       <div class="sc-label">Not Called (page)</div>
     </div>
     <div class="cc-stat-card success">
       <div class="sc-icon"><i class="fas fa-phone"></i></div>
-      <div class="sc-num">{{ $withPhone }}</div>
+      <div class="sc-num">{{ $stats['with_phone'] }}</div>
       <div class="sc-label">Has Phone</div>
     </div>
     <div class="cc-stat-card danger">
       <div class="sc-icon"><i class="fas fa-exclamation-triangle"></i></div>
-      <div class="sc-num">{{ $noPhone }}</div>
+      <div class="sc-num">{{ $stats['no_phone'] }}</div>
       <div class="sc-label">No Phone</div>
     </div>
   </div>
@@ -134,6 +97,34 @@
     </div>
   </div>
 
+  {{-- Bulk SMS Modal --}}
+  <div class="modal fade" id="modalBulkSms" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header" style="background:var(--cc-info-light)">
+          <h6 class="modal-title" style="color:var(--cc-info)"><i class="fas fa-sms"></i> Send Bulk SMS</h6>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted mb-2">Sending to <strong id="bulkSmsCount">0</strong> selected patient(s). Patients without a valid phone number are skipped automatically.</p>
+          <div class="form-group mb-0">
+            <label class="filter-label">Message Template</label>
+            <select id="bulkSmsTemplate" class="form-control form-control-sm">
+              <option value="missed">Missed Call — We tried to reach you</option>
+              <option value="appt">Appointment Reminder</option>
+              <option value="lab">Lab Results Ready</option>
+              <option value="fu">Follow-up Reminder</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-frest outline sm" data-dismiss="modal">Cancel</button>
+          <button class="btn-frest info sm" id="btnSendBulkSms" onclick="submitBulkSms()"><i class="fas fa-paper-plane"></i> Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   {{-- Main Card --}}
   <div class="fcard">
     <div class="fcard-head">
@@ -157,12 +148,7 @@
           </thead>
           <tbody>
             @forelse($patients as $patient)
-            @php
-              $lastLog   = $patient->latestCallLog;
-              $otherCall = \App\Models\PatientCallLog::where('patient_id', $patient->id)
-                  ->where('call_by', '!=', auth()->id())->latest('call_date')->first();
-              $phoneOk   = $patient->phone && $patient->phone !== 'INVALID';
-            @endphp
+            @php($lastLog = $patient->latestCallLog)
             <tr>
               <td class="text-center"><input type="checkbox" class="fu-chk" value="{{ $patient->id }}" onchange="updateCount()" style="accent-color:var(--cc-primary);width:14px;height:14px"></td>
               <td>
@@ -170,13 +156,13 @@
                 <div class="td-sub">{{ $patient->register_id ?? 'ID:'.$patient->id }} · {{ Str::limit($patient->address ?? '', 35) }}</div>
               </td>
               <td>
-                <span class="fpill {{ $phoneOk ? 'fp-success' : 'fp-danger' }}">
+                <span class="fpill {{ $patient->phone_ok ? 'fp-success' : 'fp-danger' }}">
                   <i class="fas fa-phone" style="font-size:9px"></i>
                   {{ $patient->phone ?? 'N/A' }}
                 </span>
               </td>
               <td style="font-size:11px;color:var(--cc-text-muted)">
-                {{ $lastLog ? \Carbon\Carbon::parse($lastLog->call_date)->format('d M Y') : '—' }}
+                {{ $lastLog?->call_date ? \Carbon\Carbon::parse($lastLog->call_date)->format('d M Y') : '—' }}
               </td>
               <td>
                 <span class="fpill fp-secondary">{{ $patient->call_count ?? 0 }}</span>
@@ -185,11 +171,11 @@
                 {{ Str::limit($lastLog?->call_note ?? $lastLog?->caller_opinion ?? '—', 65) }}
               </td>
               <td>
-                @if($otherCall)
+                @if($patient->other_agent_call)
                 <div style="font-size:11px;color:var(--cc-warning);font-weight:500">
-                  <i class="fas fa-user" style="font-size:9px"></i> {{ $otherCall->caller?->name }}
+                  <i class="fas fa-user" style="font-size:9px"></i> {{ $patient->other_agent_call->caller?->name }}
                 </div>
-                <div style="font-size:10px;color:var(--cc-text-light)">{{ \Carbon\Carbon::parse($otherCall->call_date)->format('d M Y') }}</div>
+                <div style="font-size:10px;color:var(--cc-text-light)">{{ \Carbon\Carbon::parse($patient->other_agent_call->call_date)->format('d M Y') }}</div>
                 @else
                 <span style="color:var(--cc-text-light);font-size:11px">—</span>
                 @endif
@@ -220,6 +206,7 @@
 @endsection
 
 @section('page-scripts')
+@include('callcenter.partials._frest_js_init')
 <script>
 $(document).ready(function() {
     if ($.fn.DataTable.isDataTable('#followupTable')) $('#followupTable').DataTable().destroy();
@@ -257,10 +244,35 @@ function saveAsToday() {
 function bulkSms() {
     var ids = Array.from(document.querySelectorAll('.fu-chk:checked')).map(c => c.value);
     if (!ids.length) { toastr.warning('Please select at least one patient.'); return; }
-    toastr.info(ids.length + ' patient(s) selected for bulk SMS.');
+    document.getElementById('bulkSmsCount').textContent = ids.length;
+    $('#modalBulkSms').modal('show');
 }
+
+function submitBulkSms() {
+    var ids = Array.from(document.querySelectorAll('.fu-chk:checked')).map(c => c.value);
+    if (!ids.length) { toastr.warning('Please select at least one patient.'); $('#modalBulkSms').modal('hide'); return; }
+
+    var $btn = $('#btnSendBulkSms').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+
+    $.post('{{ route("callcenter.sms.bulk") }}', {
+        patient_ids: ids,
+        template_key: $('#bulkSmsTemplate').val()
+    }).done(function(res) {
+        if (res.success) {
+            toastr.success(res.message);
+            $('#modalBulkSms').modal('hide');
+            document.querySelectorAll('.fu-chk').forEach(c => c.checked = false);
+            updateCount();
+        }
+    }).fail(function(xhr) {
+        toastr.error(xhr.responseJSON?.message ?? 'Bulk SMS failed.');
+    }).always(function() {
+        $btn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Send');
+    });
+}
+
 function openCallHistory(patientId) {
-    $.get('{{ url("callcenter/calllogs/history") }}/' + patientId, function(res) {
+    $.get('{{ route("callcenter.calllogs.history", ["patientId" => "__ID__"]) }}'.replace('__ID__', patientId), function(res) {
         $('#callHistoryBody').html(res.html);
         $('#modalCallHistory').modal('show');
     });

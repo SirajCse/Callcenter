@@ -3,34 +3,6 @@
 
 @section('page-styles')
 @include('callcenter.partials._frest_css')
-<style>
-.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
-@media(max-width:768px){.stat-row{grid-template-columns:repeat(2,1fr)}}
-
-.filters-card{background:#fff;border:1px solid var(--cc-border);border-radius:var(--cc-r2);padding:12px 14px;margin-bottom:12px;box-shadow:var(--cc-shadow-sm)}
-.filters-grid{display:grid;grid-template-columns:repeat(3,1fr) auto;gap:8px;align-items:end}
-@media(max-width:768px){.filters-grid{grid-template-columns:repeat(2,1fr)}}
-.filters-grid .form-control,.filters-grid select,.filters-grid input{height:34px;font-size:12px;border-radius:var(--cc-r2);border:1px solid var(--cc-border2);padding:6px 10px}
-.filters-grid .form-control:focus,.filters-grid select:focus,.filters-grid input:focus{border-color:var(--cc-primary);box-shadow:0 0 0 3px rgba(90,141,238,.12);outline:none}
-
-#missingTable{font-size:12px;width:100%!important}
-#missingTable thead th{background:#fafafa;color:var(--cc-text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;border-bottom:2px solid var(--cc-border);border-top:none}
-#missingTable tbody td{padding:10px 12px;vertical-align:middle;color:var(--cc-text);border-top:1px solid var(--cc-border)}
-#missingTable tbody tr:hover td{background:rgba(90,141,238,.03)}
-
-.action-bar{display:flex;gap:4px;flex-wrap:wrap}
-.btn-icon{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:none;cursor:pointer;transition:all .2s;font-size:11px}
-.btn-icon.warning{background:var(--cc-warning-light);color:var(--cc-warning)}
-.btn-icon.warning:hover{background:var(--cc-warning);color:#fff}
-.btn-icon.success{background:var(--cc-success-light);color:var(--cc-success)}
-.btn-icon.success:hover{background:var(--cc-success);color:#fff}
-
-.dataTables_wrapper .dataTables_length select,
-.dataTables_wrapper .dataTables_filter input{height:32px;border-radius:var(--cc-r2);border:1px solid var(--cc-border2);padding:4px 10px;font-size:12px}
-.dataTables_wrapper .dataTables_paginate .paginate_button{padding:5px 10px;border-radius:var(--cc-r);font-size:12px}
-.dataTables_wrapper .dataTables_paginate .paginate_button.current{background:var(--cc-primary)!important;border-color:var(--cc-primary)!important;color:#fff!important}
-.dataTables_wrapper .dataTables_info,.dataTables_wrapper label{font-size:11px;color:var(--cc-text-muted)}
-</style>
 @endsection
 
 @section('content')
@@ -43,32 +15,25 @@
   </div>
 
   {{-- Stat Cards --}}
-  @php
-    $allRec     = \App\Models\CallCenter\MissingAddress::query();
-    $totalRec   = (clone $allRec)->count();
-    $pendingRec = (clone $allRec)->where('status','pending')->count();
-    $awaitRec   = (clone $allRec)->where('status','awaiting')->count();
-    $resolvedRec= (clone $allRec)->whereIn('status',['updated','delivered'])->count();
-  @endphp
   <div class="stat-row">
     <div class="cc-stat-card primary">
       <div class="sc-icon"><i class="fas fa-map-marker-alt"></i></div>
-      <div class="sc-num">{{ $totalRec }}</div>
+      <div class="sc-num">{{ $stats['total'] }}</div>
       <div class="sc-label">Total Records</div>
     </div>
     <div class="cc-stat-card danger">
       <div class="sc-icon"><i class="fas fa-clock"></i></div>
-      <div class="sc-num">{{ $pendingRec }}</div>
+      <div class="sc-num">{{ $stats['pending'] }}</div>
       <div class="sc-label">Pending</div>
     </div>
     <div class="cc-stat-card warning">
       <div class="sc-icon"><i class="fas fa-envelope"></i></div>
-      <div class="sc-num">{{ $awaitRec }}</div>
+      <div class="sc-num">{{ $stats['awaiting'] }}</div>
       <div class="sc-label">Letter Sent / Awaiting</div>
     </div>
     <div class="cc-stat-card success">
       <div class="sc-icon"><i class="fas fa-check-circle"></i></div>
-      <div class="sc-num">{{ $resolvedRec }}</div>
+      <div class="sc-num">{{ $stats['resolved'] }}</div>
       <div class="sc-label">Resolved</div>
     </div>
   </div>
@@ -145,8 +110,7 @@
                 {{ $rec->letter_sent_date ? $rec->letter_sent_date->format('d M Y') : '—' }}
               </td>
               <td>
-                @php $sc = ['updated'=>'fp-success','delivered'=>'fp-info','awaiting'=>'fp-warning','pending'=>'fp-secondary']; @endphp
-                <span class="fpill {{ $sc[$rec->status] ?? 'fp-secondary' }}">{{ ucfirst($rec->status) }}</span>
+                <span class="fpill {{ $statusPillClasses[$rec->status] ?? 'fp-secondary' }}">{{ ucfirst($rec->status) }}</span>
               </td>
               <td style="font-size:11px;color:var(--cc-text-muted)">{{ Str::limit($rec->note, 60) }}</td>
               <td>
@@ -205,6 +169,7 @@
 @endsection
 
 @section('page-scripts')
+@include('callcenter.partials._frest_js_init')
 <script>
 $(document).ready(function() {
     if ($.fn.DataTable.isDataTable('#missingTable')) $('#missingTable').DataTable().destroy();
@@ -219,15 +184,15 @@ $(document).ready(function() {
 });
 
 function updateRecord(id, status) {
-    var data = {_token: '{{ csrf_token() }}', _method: 'PUT', status: status};
+    var data = {_method: 'PUT', status: status};
     if (status === 'sent') {
         data.letter_sent = 1;
         data.letter_sent_date = new Date().toISOString().split('T')[0];
         data.status = 'awaiting';
     }
-    $.post('{{ url("callcenter/missing-address") }}/' + id, data, function(res) {
-        if (res.success) { toastr.success('Record updated.'); location.reload(); }
-    }).fail(function() { toastr.error('Update failed.'); });
+    $.post('{{ route("callcenter.missing.update", ["missingAddress" => "__ID__"]) }}'.replace('__ID__', id), data)
+        .done(function(res) { if (res.success) { toastr.success('Record updated.'); location.reload(); } })
+        .fail(function() { toastr.error('Update failed.'); });
 }
 
 function openNoteModal(id, note) {
@@ -238,11 +203,10 @@ function openNoteModal(id, note) {
 
 function saveNote() {
     var id = $('#noteRecordId').val();
-    $.post('{{ url("callcenter/missing-address") }}/' + id, {
-        _token: '{{ csrf_token() }}',
+    $.post('{{ route("callcenter.missing.update", ["missingAddress" => "__ID__"]) }}'.replace('__ID__', id), {
         _method: 'PUT',
         note: $('#noteText').val()
-    }, function(res) {
+    }).done(function(res) {
         if (res.success) {
             toastr.success('Note saved.');
             $('#noteModal').modal('hide');

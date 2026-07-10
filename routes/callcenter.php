@@ -12,18 +12,21 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| CALL CENTER ROUTES
-| Add this file via:  require __DIR__.'/callcenter.php';  in web.php
+| CALL CENTER ROUTES  (FIXED — auth middleware + auto-dial)
+| Require this file in web.php:  require __DIR__.'/callcenter.php';
 |--------------------------------------------------------------------------
 */
-//middleware(['auth'])->
-Route::prefix('callcenter')->name('callcenter.')->group(function () {
+Route::middleware(['auth'])->prefix('callcenter')->name('callcenter.')->group(function () {
 
     // ── Board ────────────────────────────────────────────────────
     Route::get('/',                             [CallBoardController::class, 'index'])->name('board');
     Route::get('/patient/{id}',                 [CallBoardController::class, 'patient'])->name('patient');
     Route::get('/my-calls',                     [CallBoardController::class, 'myCalls'])->name('mycalls');
     Route::get('/my-stats',                     [CallBoardController::class, 'myStats'])->name('mystats');
+
+    // ── Auto-Dial (MikoPBX) ──────────────────────────────────────
+    Route::post('/dial',                        [CallBoardController::class, 'dialPatient'])->name('dial');
+    Route::post('/calllogs/{callLog}/outcome',  [PatientCallLogController::class, 'updateOutcome'])->name('calllogs.outcome');
 
     // ── Tasks ────────────────────────────────────────────────────
     Route::get('/tasks',                        [TaskController::class, 'index'])->name('tasks.index');
@@ -55,7 +58,7 @@ Route::prefix('callcenter')->name('callcenter.')->group(function () {
     // ── Missing Address ──────────────────────────────────────────
     Route::get('/missing-address',              [MissingAddressController::class, 'index'])->name('missing.index');
     Route::post('/missing-address',             [MissingAddressController::class, 'store'])->name('missing.store');
-    Route::put('/missing-address/{missingAddress}',     [MissingAddressController::class, 'update'])->name('missing.update');
+    Route::put('/missing-address/{missingAddress}', [MissingAddressController::class, 'update'])->name('missing.update');
 
     // ── Admin (supervisor/admin only) ────────────────────────────
     Route::middleware(['role:ADMINISTRATOR|SUPER-ADMIN|ADMIN'])->prefix('admin')->name('admin.')->group(function () {
@@ -65,5 +68,4 @@ Route::prefix('callcenter')->name('callcenter.')->group(function () {
         Route::get('/monitor',                  [AdminCallCenterController::class, 'monitor'])->name('monitor');
         Route::get('/performance',              [AdminCallCenterController::class, 'performance'])->name('performance');
     });
-
 });

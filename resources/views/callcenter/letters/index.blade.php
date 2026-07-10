@@ -3,27 +3,6 @@
 
 @section('page-styles')
 @include('callcenter.partials._frest_css')
-<style>
-.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
-@media(max-width:768px){.stat-row{grid-template-columns:repeat(2,1fr)}}
-
-.filters-card{background:#fff;border:1px solid var(--cc-border);border-radius:var(--cc-r2);padding:12px 14px;margin-bottom:12px;box-shadow:var(--cc-shadow-sm)}
-.filters-grid{display:grid;grid-template-columns:repeat(3,1fr) auto;gap:8px;align-items:end}
-@media(max-width:768px){.filters-grid{grid-template-columns:repeat(2,1fr)}}
-.filters-grid .form-control,.filters-grid select,.filters-grid input{height:34px;font-size:12px;border-radius:var(--cc-r2);border:1px solid var(--cc-border2);padding:6px 10px}
-.filters-grid .form-control:focus,.filters-grid select:focus,.filters-grid input:focus{border-color:var(--cc-primary);box-shadow:0 0 0 3px rgba(90,141,238,.12);outline:none}
-
-#lettersTable{font-size:12px;width:100%!important}
-#lettersTable thead th{background:#fafafa;color:var(--cc-text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;border-bottom:2px solid var(--cc-border);border-top:none}
-#lettersTable tbody td{padding:10px 12px;vertical-align:middle;color:var(--cc-text);border-top:1px solid var(--cc-border)}
-#lettersTable tbody tr:hover td{background:rgba(90,141,238,.03)}
-
-.dataTables_wrapper .dataTables_length select,
-.dataTables_wrapper .dataTables_filter input{height:32px;border-radius:var(--cc-r2);border:1px solid var(--cc-border2);padding:4px 10px;font-size:12px}
-.dataTables_wrapper .dataTables_paginate .paginate_button{padding:5px 10px;border-radius:var(--cc-r);font-size:12px}
-.dataTables_wrapper .dataTables_paginate .paginate_button.current{background:var(--cc-primary)!important;border-color:var(--cc-primary)!important;color:#fff!important}
-.dataTables_wrapper .dataTables_info,.dataTables_wrapper label{font-size:11px;color:var(--cc-text-muted)}
-</style>
 @endsection
 
 @section('content')
@@ -38,32 +17,25 @@
   </div>
 
   {{-- Stat Cards --}}
-  @php
-    $allLetters  = \App\Models\CallCenter\LetterLog::query();
-    $totalLet    = (clone $allLetters)->count();
-    $sentLet     = (clone $allLetters)->whereIn('status',['sent','delivered'])->count();
-    $queuedLet   = (clone $allLetters)->where('status','queued')->count();
-    $printedLet  = (clone $allLetters)->where('status','printed')->count();
-  @endphp
   <div class="stat-row">
     <div class="cc-stat-card primary">
       <div class="sc-icon"><i class="fas fa-envelope"></i></div>
-      <div class="sc-num">{{ $totalLet }}</div>
+      <div class="sc-num">{{ $stats['total'] }}</div>
       <div class="sc-label">Total Letters</div>
     </div>
     <div class="cc-stat-card success">
       <div class="sc-icon"><i class="fas fa-check-circle"></i></div>
-      <div class="sc-num">{{ $sentLet }}</div>
+      <div class="sc-num">{{ $stats['sent'] }}</div>
       <div class="sc-label">Sent / Delivered</div>
     </div>
     <div class="cc-stat-card warning">
       <div class="sc-icon"><i class="fas fa-clock"></i></div>
-      <div class="sc-num">{{ $queuedLet }}</div>
+      <div class="sc-num">{{ $stats['queued'] }}</div>
       <div class="sc-label">Queued</div>
     </div>
     <div class="cc-stat-card info">
       <div class="sc-icon"><i class="fas fa-print"></i></div>
-      <div class="sc-num">{{ $printedLet }}</div>
+      <div class="sc-num">{{ $stats['printed'] }}</div>
       <div class="sc-label">Printed</div>
     </div>
   </div>
@@ -137,8 +109,7 @@
                 <span class="fpill fp-secondary">{{ \App\Models\CallCenter\LetterLog::REASONS[$letter->reason] ?? $letter->reason }}</span>
               </td>
               <td>
-                @php $sc = ['sent'=>'fp-success','delivered'=>'fp-success','queued'=>'fp-primary','printed'=>'fp-info','pending'=>'fp-warning']; @endphp
-                <span class="fpill {{ $sc[$letter->status] ?? 'fp-secondary' }}">{{ ucfirst($letter->status) }}</span>
+                <span class="fpill {{ $statusPillClasses[$letter->status] ?? 'fp-secondary' }}">{{ ucfirst($letter->status) }}</span>
               </td>
               <td style="font-size:11px;color:var(--cc-text-muted)">{{ Str::limit($letter->internal_note, 55) }}</td>
               <td>
@@ -170,6 +141,7 @@
 @endsection
 
 @section('page-scripts')
+@include('callcenter.partials._frest_js_init')
 <script>
 $(document).ready(function() {
     if ($.fn.DataTable.isDataTable('#lettersTable')) $('#lettersTable').DataTable().destroy();

@@ -1,4 +1,5 @@
-{{-- resources/views/callcenter/board/partials/_modal_log_call.blade.php --}}
+{{-- resources/views/callcenter/board/partials/_modal_log_call.blade.php
+    Fixed: AJAX submission + "Dial & Log" auto-dial button (no full page reload). --}}
 <div class="modal fade" id="modalLogCall" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
@@ -6,7 +7,8 @@
         <h6 class="modal-title"><i class="fas fa-phone-alt mr-2"></i>Log Call</h6>
         <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
       </div>
-      <form action="{{ route('callcenter.calllogs.store') }}" method="POST" id="logCallForm">
+      <form action="{{ route('callcenter.calllogs.store') }}" method="POST"
+            id="logCallForm" onsubmit="return submitLogCall(event)">
         @csrf
         <input type="hidden" name="patient_id" id="logCallPatientId">
         <input type="hidden" name="task_id"    id="logCallTaskId">
@@ -15,7 +17,7 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="small font-weight-bold">Call Type</label>
-                <select name="method" class="form-control form-control-sm">
+                <select name="method" id="logCallMethod" class="form-control form-control-sm">
                   <option value="outgoing">Outgoing</option>
                   <option value="incoming">Incoming</option>
                 </select>
@@ -64,13 +66,15 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="small font-weight-bold">Call Date/Time</label>
-                <input type="datetime-local" name="call_date" class="form-control form-control-sm" value="{{ now()->format('Y-m-d\TH:i') }}">
+                <input type="datetime-local" name="call_date" class="form-control form-control-sm"
+                       value="{{ now()->format('Y-m-d\TH:i') }}">
               </div>
             </div>
             <div class="col-12">
               <div class="form-group">
                 <label class="small font-weight-bold">Call Note</label>
-                <textarea name="call_note" class="form-control form-control-sm" rows="3" placeholder="Notes from this call..."></textarea>
+                <textarea name="call_note" class="form-control form-control-sm" rows="3"
+                          placeholder="Notes from this call..."></textarea>
               </div>
             </div>
             <div class="col-md-6">
@@ -82,7 +86,8 @@
             <div class="col-md-6">
               <div class="form-group">
                 <label class="small font-weight-bold">Follow-up Note</label>
-                <input type="text" name="followup_target_note" class="form-control form-control-sm" placeholder="What to discuss next...">
+                <input type="text" name="followup_target_note" class="form-control form-control-sm"
+                       placeholder="What to discuss next...">
               </div>
             </div>
             <div class="col-md-6">
@@ -126,9 +131,79 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1"></i> Save & Log</button>
+          <button type="button" class="btn btn-success" onclick="dialAndLog()">
+            <i class="fas fa-phone-volume mr-1"></i> Dial &amp; Log
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save mr-1"></i> Save &amp; Log
+          </button>
         </div>
       </form>
     </div>
   </div>
 </div>
+
+<script>
+// ── AJAX submit handler ────────────────────────────────────
+function submitLogCall(event) {
+    if (event) event.preventDefault();
+    var $form = $('#logCallForm');
+    var $btn  = $form.find('button[type="submit"]');
+    var prev  = $btn.html();
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Saving...');
+
+    $.ajax({
+        url:  $form.attr('action'),
+        type: 'POST',
+        data: $form.serialize(),
+        dataType: 'json'
+    }).done(function (res) {
+        if (res && res.success) {
+            toastr.success('Call logged successfully.');
+            $('#modalLogCall').modal('hide');
+            $form[0].reset();
+            setTimeout(function () { location.reload(); }, 600);
+        } else {
+            toastr.error((res && res.message) || 'Failed to log call.');
+        }
+    }).fail(function (xhr) {
+        var msg = (xhr.responseJSON && xhr.responseJSON.message)
+               || (xhr.responseJSON && xhr.responseJSON.errors
+                    && Object.values(xhr.responseJSON.errors).flat().join(', '))
+               || 'Server error while logging call.';
+        toastr.error(msg);
+    }).always(function () {
+        $btn.prop('disabled', false).html(prev);
+    });
+    return false;
+}
+
+// ── Dial & Log: trigger auto-dial, force outgoing, then submit ─
+function dialAndLog() {
+    var patientId = $('#logCallPatientId').val();
+    // Force "outgoing" since we are initiating the call.
+    $('#logCallMethod').val('outgoing');
+
+    // Trigger the auto-dial function defined in board.js (MikoPBX).
+    // If unavailable, fall back to a simple toast and proceed.
+    if (typeof dialPatient === 'function' && patientId) {
+        try {
+            var promise = dialPatient(patientId);
+            if (promise && typeof promise.then === 'function') {
+                promise.then(function () { submitLogCall(null); })
+                       .catch(function () {
+                           toastr.warning('Auto-dial failed — logging call anyway.');
+                           submitLogCall(null);
+                       });
+                return;
+            }
+        } catch (e) {
+            console.error('dialPatient error', e);
+        }
+    } else {
+        toastr.info('Auto-dial not available — logging call.');
+    }
+    // Default: submit immediately
+    submitLogCall(null);
+}
+</script>

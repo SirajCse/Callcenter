@@ -1,4 +1,8 @@
-{{-- resources/views/callcenter/board/partials/_patient_card.blade.php (Frest Design) --}}
+{{-- resources/views/callcenter/board/partials/_patient_card.blade.php (Frest Design)
+    Fixed: the "Log Call" button in .pc-actions now triggers auto-dial via
+    dialAndOpenLogCall() (defined in board.js), which calls dialPatient()
+    first, then opens the Log Call modal. All other action buttons are
+    preserved (SMS, All Notes, New Task, Letter, Deceased). --}}
 @php
     $isDeceased = $patient->is_active == false || ($patient->died ?? false);
     $phoneValid = !empty($patient->phone) && $patient->phone !== 'INVALID';
@@ -54,7 +58,7 @@
 </div>
 
 <div class="pc-actions">
-    <button class="pac success" onclick="openLogCall({{ $patient->id }})"><i class="fas fa-phone-alt"></i> Log Call</button>
+    <button class="pac success" onclick="dialAndOpenLogCall('{{ $patient->id }}')"><i class="fas fa-phone-alt"></i> Log Call</button>
     <button class="pac primary" onclick="openSmsModal({{ $patient->id }})"><i class="fas fa-comment-alt"></i> SMS</button>
     <button class="pac secondary" onclick="openCallHistory({{ $patient->id }})"><i class="fas fa-history"></i> All Notes</button>
     <button class="pac secondary" onclick="openNewTaskForPatient({{ $patient->id }})"><i class="fas fa-tasks"></i> New Task</button>

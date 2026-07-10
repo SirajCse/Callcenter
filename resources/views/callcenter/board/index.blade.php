@@ -3,40 +3,21 @@
 
 @section('page-styles')
 <style>
-/* ══════════════════════════════════════════════════════════
-   FREST CALL CENTER DESIGN SYSTEM
-   Primary: #5a8dee | Font: IBM Plex Sans + Rubik
-   ══════════════════════════════════════════════════════════ */
 :root {
-  --cc-primary:#5a8dee;
-  --cc-primary-light:rgba(90,141,238,0.12);
-  --cc-success:#39da8a;
-  --cc-success-light:rgba(57,218,138,0.12);
-  --cc-danger:#ff5b5b;
-  --cc-danger-light:rgba(255,91,91,0.12);
-  --cc-warning:#fdac41;
-  --cc-warning-light:rgba(253,172,65,0.12);
-  --cc-info:#00cfdd;
-  --cc-info-light:rgba(0,207,221,0.12);
-  --cc-purple:#7367f0;
-  --cc-purple-light:rgba(115,103,240,0.12);
-  --cc-body:#f8f7fa;
-  --cc-card:#fff;
-  --cc-border:#ebebeb;
-  --cc-border2:#dde3ec;
+  --cc-primary:#5a8dee; --cc-primary-light:rgba(90,141,238,0.12);
+  --cc-success:#39da8a; --cc-success-light:rgba(57,218,138,0.12);
+  --cc-danger:#ff5b5b; --cc-danger-light:rgba(255,91,91,0.12);
+  --cc-warning:#fdac41; --cc-warning-light:rgba(253,172,65,0.12);
+  --cc-info:#00cfdd; --cc-info-light:rgba(0,207,221,0.12);
+  --cc-purple:#7367f0; --cc-purple-light:rgba(115,103,240,0.12);
+  --cc-body:#f8f7fa; --cc-card:#fff;
+  --cc-border:#ebebeb; --cc-border2:#dde3ec;
   --cc-shadow:0 4px 24px 0 rgba(34,41,47,0.08);
   --cc-shadow-sm:0 2px 8px 0 rgba(34,41,47,0.08);
-  --cc-text:#475f7b;
-  --cc-text-dark:#2c3e5d;
-  --cc-text-muted:#828d99;
-  --cc-text-light:#adb5bd;
-  --cc-r:0.357rem;
-  --cc-r2:0.5rem;
-  --cc-r3:0.75rem;
+  --cc-text:#475f7b; --cc-text-dark:#2c3e5d;
+  --cc-text-muted:#828d99; --cc-text-light:#adb5bd;
+  --cc-r:0.357rem; --cc-r2:0.5rem; --cc-r3:0.75rem;
 }
-</style>
-<style>
-/* ── Topbar KPIs ─────────────────────────────────────── */
 .cc-topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 .cc-search{flex:1;max-width:400px;position:relative}
 .cc-search .select2-container{width:100%!important}
@@ -54,18 +35,11 @@
 .kpi-chip.primary .kn{color:var(--cc-primary)}
 .kpi-chip.danger .kn{color:var(--cc-danger)}
 .cc-actions{display:flex;gap:8px;margin-left:auto}
-</style>
-<style>
-/* ── Board Layout ────────────────────────────────────── */
 .cc-board{display:flex;gap:14px;min-height:calc(100vh - 200px)}
 .cc-col-left{display:flex;flex-direction:column;gap:12px;width:58%;min-width:0}
 .cc-col-right{width:42%;display:flex;flex-direction:column;gap:12px;min-width:0}
 @media(max-width:1200px){.cc-board{flex-direction:column}.cc-col-left,.cc-col-right{width:100%}}
-
-/* ── Frest Card ──────────────────────────────────────── */
 .fcard{background:var(--cc-card);border:1px solid var(--cc-border);border-radius:var(--cc-r3);box-shadow:var(--cc-shadow);overflow:hidden}
-
-/* ── Patient Card ────────────────────────────────────── */
 .pc-hero{padding:18px 18px 14px;border-bottom:1px solid var(--cc-border);position:relative;background:#fff}
 .pc-hero.deceased{background:linear-gradient(135deg,rgba(255,91,91,0.04) 0%,#fff 60%)}
 .pc-hero-accent{position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--cc-primary),var(--cc-purple))}
@@ -74,8 +48,6 @@
 .badge-deceased{background:var(--cc-danger-light);color:var(--cc-danger);border:1px solid rgba(255,91,91,0.2)}
 .badge-critical{background:var(--cc-warning-light);color:var(--cc-warning);border:1px solid rgba(253,172,65,0.2)}
 .badge-active{background:var(--cc-success-light);color:var(--cc-success);border:1px solid rgba(57,218,138,0.2)}
-</style>
-<style>
 .pc-top-row{display:flex;align-items:flex-start;gap:14px;margin-bottom:12px}
 .pc-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--cc-primary),var(--cc-purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;flex-shrink:0;box-shadow:0 4px 12px rgba(90,141,238,0.3)}
 .pc-name{font-size:19px;font-weight:600;color:var(--cc-text-dark);margin-bottom:6px;line-height:1.2}
@@ -106,9 +78,6 @@
 .pc-last-note{padding:10px 16px;font-size:12px;color:var(--cc-text-muted);display:flex;align-items:center;gap:8px;background:#fff}
 .pc-last-note .lnote-label{font-weight:600;color:var(--cc-text);white-space:nowrap;flex-shrink:0}
 .pc-last-note .lnote-text{font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-</style>
-<style>
-/* ── Tabs Panel ──────────────────────────────────────── */
 .tabs-panel{background:var(--cc-card);border:1px solid var(--cc-border);border-radius:var(--cc-r3);box-shadow:var(--cc-shadow);overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0}
 .tabs-nav{display:flex;border-bottom:1px solid var(--cc-border);background:#fafafa;overflow-x:auto;flex-shrink:0}
 .tabs-nav::-webkit-scrollbar{height:0}
@@ -124,8 +93,6 @@
 .tl-title{font-weight:600;font-size:13px;color:var(--cc-text-dark)}
 .tl-sub{font-size:12px;color:var(--cc-text-muted);line-height:1.5;margin-top:4px}
 .tl-meta{font-size:11px;color:var(--cc-text-light);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap}
-
-/* ── Frest Pills ─────────────────────────────────────── */
 .fpill{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:3px}
 .fp-success{background:var(--cc-success-light);color:var(--cc-success)}
 .fp-danger{background:var(--cc-danger-light);color:var(--cc-danger)}
@@ -133,9 +100,6 @@
 .fp-primary{background:var(--cc-primary-light);color:var(--cc-primary)}
 .fp-info{background:var(--cc-info-light);color:var(--cc-info)}
 .fp-secondary{background:rgba(71,95,123,0.1);color:#475f7b}
-</style>
-<style>
-/* ── Stats Grid ──────────────────────────────────────── */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex-shrink:0}
 .stat-card{background:var(--cc-card);border:1px solid var(--cc-border);border-radius:var(--cc-r2);padding:14px 16px;cursor:pointer;transition:all .2s;box-shadow:var(--cc-shadow-sm)}
 .stat-card:hover{box-shadow:var(--cc-shadow);transform:translateY(-1px)}
@@ -151,8 +115,6 @@
 .sc-primary .sc-num{color:var(--cc-primary)}
 .sc-danger .sc-icon{background:var(--cc-danger-light);color:var(--cc-danger)}
 .sc-danger .sc-num{color:var(--cc-danger)}
-
-/* ── Task Panel ──────────────────────────────────────── */
 .task-panel{background:var(--cc-card);border:1px solid var(--cc-border);border-radius:var(--cc-r3);box-shadow:var(--cc-shadow);display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 .tp-head{padding:14px 18px;border-bottom:1px solid var(--cc-border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:#fafafa}
 .tp-head h3{font-size:14px;font-weight:600;color:var(--cc-text-dark);display:flex;align-items:center;gap:8px;margin:0}
@@ -163,9 +125,6 @@
 .tp-tab.active{color:var(--cc-primary);border-bottom-color:var(--cc-primary);font-weight:600;background:#fff}
 .tp-tab:hover{color:var(--cc-primary);background:var(--cc-primary-light)}
 .task-list-scroll{flex:1;overflow-y:auto;padding:10px;max-height:450px}
-</style>
-<style>
-/* ── Task Card ───────────────────────────────────────── */
 .tk-card{background:#fff;border:1px solid var(--cc-border);border-radius:var(--cc-r2);padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all .2s;border-left:3px solid;position:relative}
 .tk-card:hover{box-shadow:var(--cc-shadow-sm);transform:translateX(2px)}
 .tk-card.hp{border-left-color:var(--cc-danger)}
@@ -211,7 +170,7 @@
   <div class="kpi-chip primary" onclick="switchTaskTab('pending')"><span class="kn">{{ $stats['followup'] }}</span> Follow-up</div>
   <div class="kpi-chip danger" onclick="switchTaskTab('transferred')"><span class="kn">{{ $stats['transferred'] }}</span> Transferred</div>
   <div class="cc-actions">
-    <button class="btn-frest outline" onclick="openLogCall(currentPatientId)"><i class="fas fa-phone-alt"></i> Log Call</button>
+    <button class="btn-frest outline" onclick="dialAndOpenLogCall(currentPatientId)"><i class="fas fa-phone-alt"></i> Dial &amp; Log</button>
     <button class="btn-frest primary" data-toggle="modal" data-target="#modalNewTask"><i class="fas fa-plus"></i> New Task</button>
   </div>
 </div>
@@ -222,7 +181,6 @@
   {{-- LEFT: Patient Card + Tabs --}}
   <div class="cc-col-left">
 
-    {{-- Patient Card --}}
     @if($patient)
     <div class="fcard fade-in" id="patientCardWrap">
       @include('callcenter.board.partials._patient_card', ['patient' => $patient])
@@ -236,7 +194,6 @@
     </div>
     @endif
 
-    {{-- Profile Tabs --}}
     <div class="tabs-panel">
       <div class="tabs-nav">
         <button class="tn-btn active" onclick="switchProfileTab(this,'tab-appt')">📅 Appointments</button>
@@ -258,7 +215,6 @@
   {{-- RIGHT: Stats + Task Panel --}}
   <div class="cc-col-right">
 
-    {{-- Stats Grid --}}
     <div class="stats-grid">
       <div class="stat-card sc-success" onclick="switchTaskTab('completed')">
         <div class="sc-row">
@@ -286,7 +242,6 @@
       </div>
     </div>
 
-    {{-- Task Panel --}}
     <div class="task-panel">
       <div class="tp-head">
         <h3><i class="fas fa-tasks"></i> Task Manager</h3>
@@ -319,6 +274,7 @@
 {{-- ══════════════ MODALS ══════════════ --}}
 @include('callcenter.board.partials._modal_log_call')
 @include('callcenter.board.partials._modal_new_task')
+@include('callcenter.board.partials._modal_transfer')
 @include('callcenter.calllogs.history_modal')
 @include('callcenter.sms._modal')
 @include('callcenter.letters._modal')
@@ -326,6 +282,14 @@
 @endsection
 
 @section('page-scripts')
+{{-- ★ NEW: Auto-dial + AJAX form handler JS --}}
+<script>
+window.CC_DIAL_URL = '{{ route("callcenter.dial") }}';
+window.CC_OUTCOME_URL_TEMPLATE = '{{ route("callcenter.calllogs.outcome", ":id") }}'.replace(':id', '__ID__');
+window.CC_SMS_TEMPLATES = @json(\App\Models\CallCenter\SmsLog::TEMPLATES);
+</script>
+<script src="{{ asset('js/callcenter/board.js') }}"></script>
+
 <script>
 var currentPatientId = {{ $patient?->id ?? 'null' }};
 
@@ -336,46 +300,28 @@ $('#ccPatientSearch').select2({
     allowClear: true,
     ajax: {
         url: '{{ url("ajax/get_patient_by_anything") }}',
-        data: function (params) {
-            return { term: params.term || '' };
-        },
+        data: function (params) { return { term: params.term || '' }; },
         delay: 300,
         processResults: function (data) {
-            return {
-                results: $.map(data, function (item) {
-                    var phone = '';
-                    var died = '';
-                    if (item.phone && item.phone2) {
-                        phone = ' ' + item.phone + ' / ' + item.phone2;
-                    } else if (item.phone) {
-                        phone = item.phone;
-                    } else if (item.phone2) {
-                        phone = item.phone2;
-                    }
-                    if (item.died == 1) { died = '(Died) '; }
-                    return {
-                        text: died + item.name + ' ' + (item.email || '') + ' (' + (item.register_id || item.id) + ') ' + phone,
-                        id: item.id
-                    };
-                })
-            };
+            return { results: $.map(data, function (item) {
+                var phone = '', died = '';
+                if (item.phone && item.phone2) { phone = ' ' + item.phone + ' / ' + item.phone2; }
+                else if (item.phone) { phone = item.phone; }
+                else if (item.phone2) { phone = item.phone2; }
+                if (item.died == 1) { died = '(Died) '; }
+                return { text: died + item.name + ' ' + (item.email || '') + ' (' + (item.register_id || item.id) + ') ' + phone, id: item.id };
+            })};
         }
     }
 });
 
-// When patient is selected → reload page with ?pid= so it persists
 $('#ccPatientSearch').on('select2:select', function (e) {
     var patientId = e.params.data.id;
-    if (patientId) {
-        window.location.href = '{{ route("callcenter.board") }}?pid=' + patientId;
-    }
+    if (patientId) { window.location.href = '{{ route("callcenter.board") }}?pid=' + patientId; }
 });
-
-// When cleared → go back to blank board
 $('#ccPatientSearch').on('select2:clear', function () {
     window.location.href = '{{ route("callcenter.board") }}';
 });
-
 
 // ── Profile Tabs ───────────────────────────────────────────
 function switchProfileTab(btn, tabId) {
@@ -436,6 +382,7 @@ function pinTask(id) {
 function openLogCall(patientId, taskId) {
     $('#logCallPatientId').val(patientId || currentPatientId);
     $('#logCallTaskId').val(taskId || '');
+    window._pendingCallLogId = null;
     $('#modalLogCall').modal('show');
 }
 function openSmsModal(patientId) { $('#smsPatientId').val(patientId || currentPatientId); $('#modalSms').modal('show'); }

@@ -19,12 +19,14 @@ class AdminCallCenterController extends Controller
 	 */
 	public function index(): View
 	{
-		$agents = $this->getAgents();
 		$todayStats = $this->getTodayStats();
+		$agents = $this->attachAgentDayMetrics($this->getAgents(), $todayStats);
+		$rankedStats = $this->attachRanks($todayStats->sortByDesc('total_calls'));
 
 		return view('callcenter.admin.index', [
 			'agents' => $agents,
 			'todayStats' => $todayStats,
+			'rankedStats' => $rankedStats,
 			'kpi' => $this->getKpiMetrics($agents, $todayStats),
 		]);
 	}
@@ -159,15 +161,13 @@ class AdminCallCenterController extends Controller
 	 */
 	public function monitor(): View
 	{
-		$agents = $this->getAgents()->map(function ($agent) {
-			$agent->pending_tasks = Task::forAgent($agent->id)->pending()->count();
-			return $agent;
-		});
+		$todayStats = $this->getTodayStats();
+		$agents = $this->attachAgentDayMetrics($this->getAgents(), $todayStats);
 
 		return view('callcenter.admin.monitor', [
 			'agents' => $agents,
-			'todayStats' => $this->getTodayStats(),
-			'kpi' => $this->getKpiMetrics($agents, $this->getTodayStats()),
+			'todayStats' => $todayStats,
+			'kpi' => $this->getKpiMetrics($agents, $todayStats),
 		]);
 	}
 
@@ -192,6 +192,8 @@ class AdminCallCenterController extends Controller
 			->orderByDesc('total_calls')
 			->get();
 
+		$stats = $this->attachRanks($stats, 'plain');
+
 		return view('callcenter.admin.performance', compact('stats', 'from', 'to'));
 	}
 
@@ -200,6 +202,68 @@ class AdminCallCenterController extends Controller
 	private function getAgents(): \Illuminate\Database\Eloquent\Collection
 	{
 		return User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent', 'supervisor']))->get();
+	}
+
+	/**
+	 * Attach today's stat row, a pending-task count, and a display success-rate to each agent
+	 * in ONE batched query — avoids the N+1 query that used to live in the monitor/index views.
+	 */
+	private function attachAgentDayMetrics(\Illuminate\Database\Eloquent\Collection $agents, \Illuminate\Database\Eloquent\Collection $todayStats): \Illuminate\Database\Eloquent\Collection
+	{
+		$pendingCounts = Task::whereIn('agent_id', $agents->pluck('id'))
+			->pending()
+			->selectRaw('agent_id, count(*) as c')
+			->groupBy('agent_id')
+			->pluck('c', 'agent_id');
+
+		return $agents->map(function ($agent) use ($todayStats, $pendingCounts) {
+			$agent->day_stat = $todayStats->firstWhere('agent_id', $agent->id);
+			$agent->pending_tasks = $pendingCounts->get($agent->id, 0);
+			$agent->success_rate = $agent->day_stat?->success_rate ?? 0;
+			$agent->success_rate_color = $this->successRateColor($agent->success_rate);
+			return $agent;
+		});
+	}
+
+	/** Bootstrap-friendly colour band for a success-rate percentage. */
+	private function successRateColor(float $rate): string
+	{
+		return $rate >= 80 ? '#22c55e' : ($rate >= 50 ? '#fbbf24' : '#ef4444');
+	}
+
+	/** Rank CSS classes for a leaderboard position (1st/2nd/3rd get special styling). */
+	private const RANK_CLASSES = [
+		'prefixed' => [ // used by admin/index + admin/monitor markup
+			1 => ['border' => 'border-gold',   'badge' => 'bg-gold',   'medal' => '🥇'],
+			2 => ['border' => 'border-silver', 'badge' => 'bg-silver', 'medal' => '🥈'],
+			3 => ['border' => 'border-bronze', 'badge' => 'bg-bronze', 'medal' => '🥉'],
+		],
+		'plain' => [ // used by admin/performance markup
+			1 => ['border' => 'gold',   'badge' => 'gold',   'medal' => '🥇'],
+			2 => ['border' => 'silver', 'badge' => 'silver', 'medal' => '🥈'],
+			3 => ['border' => 'bronze', 'badge' => 'bronze', 'medal' => '🥉'],
+		],
+	];
+
+	/**
+	 * Attach 1-based rank + display classes to a collection already sorted best-first.
+	 */
+	private function attachRanks(\Illuminate\Support\Collection $sorted, string $scheme = 'prefixed'): \Illuminate\Support\Collection
+	{
+		$map = self::RANK_CLASSES[$scheme];
+		$defaultBadge = $scheme === 'prefixed' ? 'bg-secondary' : 'default';
+
+		return $sorted->values()->map(function ($item, $i) use ($map, $defaultBadge) {
+			$rank = $i + 1;
+			$style = $map[$rank] ?? ['border' => '', 'badge' => $defaultBadge, 'medal' => ''];
+			$item->rank = $rank;
+			$item->rank_border_class = $style['border'];
+			$item->rank_badge_class = $style['badge'];
+			$item->rank_medal = $style['medal'];
+			$rate = $item->success_rate ?? $item->avg_success_rate ?? 0;
+			$item->success_rate_color = $this->successRateColor((float) $rate);
+			return $item;
+		});
 	}
 
 	private function getTodayStats(): \Illuminate\Database\Eloquent\Collection

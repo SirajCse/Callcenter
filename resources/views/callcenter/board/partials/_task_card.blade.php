@@ -1,4 +1,6 @@
-{{-- resources/views/callcenter/board/partials/_task_card.blade.php (Frest Design) --}}
+{{-- resources/views/callcenter/board/partials/_task_card.blade.php (Frest Design)
+    Fixed: the Call button now triggers auto-dial via dialAndOpenLogCall()
+    (defined in board.js) which calls dialPatient() before opening the modal. --}}
 @php
     $pc = $task->priority === 'high' ? 'hp' : ($task->priority === 'medium' ? 'mp' : 'lp');
     $pillClass = $task->priority === 'high' ? 'fp-danger' : ($task->priority === 'medium' ? 'fp-warning' : 'fp-success');
@@ -25,7 +27,7 @@
     @if($task->status === 'pending')
     <div class="tc-actions">
         <button class="tca success" onclick="event.stopPropagation();completeTask({{ $task->id }})"><i class="fas fa-check"></i> Done</button>
-        <button class="tca primary" onclick="event.stopPropagation();openLogCall({{ $task->patient_id }}, {{ $task->id }})"><i class="fas fa-phone"></i> Call</button>
+        <button class="tca primary" onclick="event.stopPropagation();dialAndOpenLogCall({{ $task->patient_id }}, {{ $task->id }})"><i class="fas fa-phone"></i> Call</button>
         <button class="tca warning" onclick="event.stopPropagation();transferTask({{ $task->id }})"><i class="fas fa-exchange-alt"></i> Transfer</button>
         <button class="tca secondary" onclick="event.stopPropagation();pinTask({{ $task->id }})"><i class="fas fa-thumbtack"></i></button>
     </div>

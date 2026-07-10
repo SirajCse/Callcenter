@@ -3,23 +3,7 @@
 @section('title', 'Assign Tasks')
 
 @section('page-styles')
-    @include('callcenter.partials._frest_css')
-    <style>
-        .patient-scroll {
-            max-height: 450px;
-            overflow-y: auto;
-        }
-        .patient-scroll thead {
-            position: sticky;
-            top: 0;
-            z-index: 1;
-            background: #fff;
-        }
-        .patient-scroll thead th {
-            border-bottom: 2px solid #e5e7eb;
-        }
-        .patient-scroll .table { margin-bottom: 0; }
-    </style>
+@include('callcenter.partials._frest_css')
 @endsection
 
 @section('content')
@@ -139,6 +123,7 @@
 @endsection
 
 @section('page-scripts')
+@include('callcenter.partials._frest_js_init')
     <script>
         function toggleAllPatients(cb) {
             document.querySelectorAll('.pat-chk').forEach(c => c.checked = cb.checked);

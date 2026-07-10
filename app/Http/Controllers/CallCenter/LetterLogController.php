@@ -9,13 +9,34 @@ use Illuminate\Support\Facades\Auth;
 
 class LetterLogController extends Controller
 {
+    /** Maps a letter status to its Blade pill CSS class. Keeps the view free of lookup logic. */
+    public const STATUS_PILL_CLASSES = [
+        'sent'      => 'fp-success',
+        'delivered' => 'fp-success',
+        'queued'    => 'fp-primary',
+        'printed'   => 'fp-info',
+        'pending'   => 'fp-warning',
+    ];
+
     public function index(Request $request)
     {
         $letters = LetterLog::with('patient', 'agent')
             ->when($request->status, fn($q, $v) => $q->where('status', $v))
-            ->latest()->paginate(30);
+            ->latest()->paginate(30)
+            ->withQueryString();
 
-        return view('callcenter.letters.index', compact('letters'));
+        $stats = [
+            'total'   => LetterLog::count(),
+            'sent'    => LetterLog::whereIn('status', ['sent', 'delivered'])->count(),
+            'queued'  => LetterLog::where('status', 'queued')->count(),
+            'printed' => LetterLog::where('status', 'printed')->count(),
+        ];
+
+        return view('callcenter.letters.index', [
+            'letters' => $letters,
+            'stats' => $stats,
+            'statusPillClasses' => self::STATUS_PILL_CLASSES,
+        ]);
     }
 
     public function store(Request $request)

@@ -3,26 +3,7 @@
 @section('title', 'Live Monitor')
 
 @section('page-styles')
-    @include('callcenter.partials._frest_css')
-    <style>
-        .status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: .375rem;
-        }
-        .status-dot.online { background: #22c55e; animation: pulse 2s infinite; }
-        .status-dot.offline { background: #9ca3af; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
-        .progress-sm {
-            height: 4px;
-            background: #e5e7eb;
-            border-radius: .25rem;
-            overflow: hidden;
-        }
-        .progress-sm .fill { height: 100%; border-radius: .25rem; transition: width .6s; }
-    </style>
+@include('callcenter.partials._frest_css')
 @endsection
 
 @section('content')
@@ -90,11 +71,6 @@
                 </thead>
                 <tbody>
                 @foreach($agents as $ag)
-                    @php
-                        $dayStat = $todayStats->firstWhere('agent_id', $ag->id);
-                        $pending = \App\Models\CallCenter\Task::forAgent($ag->id)->pending()->count();
-                        $successRate = $dayStat?->success_rate ?? 0;
-                    @endphp
                     <tr>
                         <td>
                             <div class="d-flex align-items-center gap-2">
@@ -113,15 +89,15 @@
                             {{ $ag->is_online ? 'Online' : 'Offline' }}
                         </span>
                         </td>
-                        <td><span class="font-weight-bold text-primary">{{ $dayStat?->total_calls ?? 0 }}</span></td>
-                        <td><span class="font-weight-bold text-success">{{ $dayStat?->completed_tasks ?? 0 }}</span></td>
-                        <td><span class="font-weight-bold text-warning">{{ $pending }}</span></td>
+                        <td><span class="font-weight-bold text-primary">{{ $ag->day_stat?->total_calls ?? 0 }}</span></td>
+                        <td><span class="font-weight-bold text-success">{{ $ag->day_stat?->completed_tasks ?? 0 }}</span></td>
+                        <td><span class="font-weight-bold text-warning">{{ $ag->pending_tasks }}</span></td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 <div class="progress-sm" style="width:80px;">
-                                    <div class="fill" style="width:{{ $successRate }}%;background:{{ $successRate >= 80 ? '#22c55e' : ($successRate >= 50 ? '#fbbf24' : '#ef4444') }}"></div>
+                                    <div class="fill" style="width:{{ $ag->success_rate }}%;background:{{ $ag->success_rate_color }}"></div>
                                 </div>
-                                <span class="small text-muted">{{ number_format($successRate, 1) }}%</span>
+                                <span class="small text-muted">{{ number_format($ag->success_rate, 1) }}%</span>
                             </div>
                         </td>
                     </tr>
@@ -133,6 +109,7 @@
 @endsection
 
 @section('page-scripts')
+@include('callcenter.partials._frest_js_init')
     <script>
         setTimeout(function() { location.reload(); }, 30000);
     </script>

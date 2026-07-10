@@ -3,265 +3,7 @@
 @section('title', 'Call Center Admin Dashboard')
 
 @section('page-styles')
-    @include('callcenter.partials._frest_css')
-    <style>
-        /* KPI Cards */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.25rem;
-            margin-bottom: 1.5rem;
-        }
-        .kpi-card {
-            background: #fff;
-            border-radius: 0.5rem;
-            padding: 1.25rem;
-            border: 1px solid #e5e7eb;
-            display: flex;
-            align-items: center;
-            gap: 0.875rem;
-            transition: all .2s;
-        }
-        .kpi-card:hover {
-            box-shadow: 0 .25rem .75rem rgba(0,0,0,.06);
-            transform: translateY(-2px);
-        }
-        .kpi-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: .5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.125rem;
-            flex-shrink: 0;
-        }
-        .kpi-icon.bg-primary-light { background: #e8f0fe; color: #1967d2; }
-        .kpi-icon.bg-success-light { background: #e6f4ea; color: #1e7e34; }
-        .kpi-icon.bg-warning-light { background: #fef3e8; color: #e37400; }
-        .kpi-icon.bg-danger-light { background: #fce8e6; color: #c62828; }
-        .kpi-value { font-size: 1.5rem; font-weight: 700; color: #1a1a2e; line-height: 1.2; }
-        .kpi-label { font-size: .75rem; color: #6b7280; margin-top: .125rem; }
-
-        /* Tabs */
-        .adm-tabs {
-            display: flex;
-            gap: .25rem;
-            background: #f3f4f6;
-            border-radius: .5rem;
-            padding: .25rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-        .adm-tab {
-            padding: .625rem 1.25rem;
-            border: none;
-            border-radius: .375rem;
-            background: transparent;
-            color: #6b7280;
-            font-weight: 500;
-            font-size: .875rem;
-            cursor: pointer;
-            transition: all .2s;
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-        }
-        .adm-tab:hover { color: #1a1a2e; background: rgba(0,0,0,.04); }
-        .adm-tab.active {
-            background: #fff;
-            color: #1967d2;
-            box-shadow: 0 .125rem .5rem rgba(0,0,0,.08);
-        }
-        .adm-tab .badge-pill {
-            background: #ef4444;
-            color: #fff;
-            font-size: .625rem;
-            padding: .0625rem .5rem;
-            border-radius: 50rem;
-        }
-        .adm-tab .badge-pill.bg-success { background: #22c55e; }
-        .adm-panel { display: none; animation: fadeIn .3s ease; }
-        .adm-panel.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(.5rem); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Filter Grid */
-        .filter-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: .75rem;
-            margin-bottom: 1rem;
-        }
-        @media (max-width: 768px) { .filter-grid { grid-template-columns: 1fr 1fr; } }
-        @media (max-width: 480px) { .filter-grid { grid-template-columns: 1fr; } }
-        .filter-group { display: flex; flex-direction: column; gap: .25rem; }
-        .filter-label {
-            font-size: .6875rem;
-            font-weight: 600;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: .3px;
-        }
-
-        /* Patient Preview Table */
-        .patient-preview-wrap {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: .75rem;
-            border: 1px solid #e5e7eb;
-            border-radius: .375rem;
-        }
-        .patient-preview-wrap table { margin-bottom: 0; }
-        .patient-preview-wrap thead {
-            position: sticky;
-            top: 0;
-            z-index: 1;
-            background: #f9fafb;
-        }
-        .patient-preview-wrap thead th {
-            border-bottom: 2px solid #e5e7eb;
-            font-size: .6875rem;
-            text-transform: uppercase;
-            letter-spacing: .3px;
-            color: #6b7280;
-            padding: .5rem .75rem;
-        }
-        .patient-preview-wrap tbody td {
-            padding: .375rem .75rem;
-            vertical-align: middle;
-        }
-        .patient-preview-wrap .table-checkbox {
-            width: 16px;
-            height: 16px;
-            cursor: pointer;
-        }
-        .patient-preview-wrap .table-checkbox:checked {
-            accent-color: #1967d2;
-        }
-
-        /* Agent Cards */
-        .agent-rank-card {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: .875rem 1.125rem;
-            background: #fff;
-            border-radius: .5rem;
-            border: 1px solid #e5e7eb;
-            transition: all .2s;
-            margin-bottom: .625rem;
-        }
-        .agent-rank-card:hover { box-shadow: 0 .125rem .5rem rgba(0,0,0,.06); }
-        .agent-rank-card.border-gold { border-color: #fbbf24; background: #fffbeb; }
-        .agent-rank-card.border-silver { border-color: #d1d5db; background: #f9fafb; }
-        .agent-rank-card.border-bronze { border-color: #d97706; background: #fffbeb; }
-        .agent-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: .9375rem;
-            background: #1967d2;
-            color: #fff;
-            flex-shrink: 0;
-        }
-        .agent-info { flex: 1; min-width: 0; }
-        .agent-name { font-weight: 600; color: #1a1a2e; font-size: .875rem; }
-        .agent-rank-badge {
-            font-size: .6875rem;
-            font-weight: 600;
-            padding: .125rem .75rem;
-            border-radius: 50rem;
-        }
-        .agent-rank-badge.bg-gold { background: #fbbf24; color: #1a1a2e; }
-        .agent-rank-badge.bg-silver { background: #d1d5db; color: #1a1a2e; }
-        .agent-rank-badge.bg-bronze { background: #d97706; color: #fff; }
-        .agent-stats {
-            display: flex;
-            gap: 1.25rem;
-            margin-top: .375rem;
-            flex-wrap: wrap;
-        }
-        .agent-stat { text-align: center; }
-        .agent-stat .value { font-size: 1rem; font-weight: 700; color: #1a1a2e; }
-        .agent-stat .label { font-size: .625rem; color: #6b7280; text-transform: uppercase; letter-spacing: .3px; }
-
-        /* Progress Bar */
-        .progress-sm {
-            height: 4px;
-            background: #e5e7eb;
-            border-radius: .25rem;
-            overflow: hidden;
-            margin-top: .375rem;
-        }
-        .progress-sm .fill { height: 100%; border-radius: .25rem; transition: width .6s; }
-
-        /* Status Dot */
-        .status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: .375rem;
-        }
-        .status-dot.online { background: #22c55e; animation: pulse 2s infinite; }
-        .status-dot.offline { background: #9ca3af; }
-        .status-dot.busy { background: #fbbf24; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
-
-        /* Monitor Table */
-        .monitor-table-wrap {
-            overflow-x: auto;
-            border-radius: .5rem;
-            border: 1px solid #e5e7eb;
-        }
-        .monitor-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
-        .monitor-table th {
-            background: #f9fafb;
-            color: #6b7280;
-            font-weight: 600;
-            font-size: .6875rem;
-            text-transform: uppercase;
-            letter-spacing: .3px;
-            padding: .625rem .875rem;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .monitor-table td {
-            padding: .625rem .875rem;
-            border-bottom: 1px solid #f3f4f6;
-            vertical-align: middle;
-        }
-        .monitor-table tr:last-child td { border-bottom: none; }
-        .monitor-table tr:hover td { background: #f9fafb; }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 2rem 1rem;
-            color: #6b7280;
-        }
-        .empty-state i { font-size: 2rem; display: block; margin-bottom: .5rem; opacity: .5; }
-
-        /* Selection Controls */
-        .selection-controls {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: .5rem .75rem;
-            background: #f9fafb;
-            border-radius: .375rem;
-            margin-top: .75rem;
-        }
-        .selection-controls .divider {
-            width: 1px;
-            height: 24px;
-            background: #e5e7eb;
-        }
-    </style>
+@include('callcenter.partials._frest_css')
 @endsection
 
 @section('content')
@@ -520,23 +262,18 @@
                 </form>
             </div>
             <div class="card-body">
-                @php $rankedStats = $todayStats->sortByDesc('total_calls'); @endphp
-                @forelse($rankedStats as $i => $stat)
-                    @php
-                        $rank = $i + 1;
-                        $rankClass = $rank === 1 ? 'border-gold' : ($rank === 2 ? 'border-silver' : ($rank === 3 ? 'border-bronze' : ''));
-                        $rankBadge = $rank === 1 ? 'bg-gold' : ($rank === 2 ? 'bg-silver' : ($rank === 3 ? 'bg-bronze' : 'bg-secondary'));
-                        $successRate = $stat->success_rate ?? 0;
-                    @endphp
-                    <div class="agent-rank-card {{ $rankClass }}">
+                {{-- Rank + colour classes computed in AdminCallCenterController@index --}}
+                @forelse($rankedStats as $stat)
+                    @php($successRate = $stat->success_rate ?? 0)
+                    <div class="agent-rank-card {{ $stat->rank_border_class }}">
                         <div class="agent-avatar">{{ strtoupper(substr($stat->agent?->name ?? '?', 0, 2)) }}</div>
                         <div class="agent-info">
                             <div class="d-flex align-items-center justify-content-between">
                                 <span class="agent-name">{{ $stat->agent?->name ?? '—' }}</span>
-                                <span class="agent-rank-badge {{ $rankBadge }}">#{{ $rank }} {{ $rank===1?'🥇':($rank===2?'🥈':($rank===3?'🥉':'')) }}</span>
+                                <span class="agent-rank-badge {{ $stat->rank_badge_class }}">#{{ $stat->rank }} {{ $stat->rank_medal }}</span>
                             </div>
                             <div class="progress-sm">
-                                <div class="fill" style="width:{{ min(100, $successRate) }}%;background:{{ $successRate >= 80 ? '#22c55e' : ($successRate >= 50 ? '#fbbf24' : '#ef4444') }}"></div>
+                                <div class="fill" style="width:{{ min(100, $successRate) }}%;background:{{ $stat->success_rate_color }}"></div>
                             </div>
                         </div>
                         <div class="agent-stats">
@@ -577,11 +314,6 @@
                     </thead>
                     <tbody>
                     @foreach($agents as $ag)
-                        @php
-                            $dayStat = $todayStats->firstWhere('agent_id', $ag->id);
-                            $pending = \App\Models\CallCenter\Task::forAgent($ag->id)->pending()->count();
-                            $successRate = $dayStat?->success_rate ?? 0;
-                        @endphp
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
@@ -598,15 +330,15 @@
                                 {{ $ag->is_online ? 'Online' : 'Offline' }}
                             </span>
                             </td>
-                            <td><span class="font-weight-bold text-primary">{{ $dayStat?->total_calls ?? 0 }}</span></td>
-                            <td><span class="font-weight-bold text-success">{{ $dayStat?->completed_tasks ?? 0 }}</span></td>
-                            <td><span class="font-weight-bold text-warning">{{ $pending }}</span></td>
+                            <td><span class="font-weight-bold text-primary">{{ $ag->day_stat?->total_calls ?? 0 }}</span></td>
+                            <td><span class="font-weight-bold text-success">{{ $ag->day_stat?->completed_tasks ?? 0 }}</span></td>
+                            <td><span class="font-weight-bold text-warning">{{ $ag->pending_tasks }}</span></td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="progress-sm" style="width:70px;margin:0">
-                                        <div class="fill" style="width:{{ $successRate }}%;background:{{ $successRate >= 80 ? '#22c55e' : ($successRate >= 50 ? '#fbbf24' : '#ef4444') }}"></div>
+                                        <div class="fill" style="width:{{ $ag->success_rate }}%;background:{{ $ag->success_rate_color }}"></div>
                                     </div>
-                                    <span class="small text-muted">{{ number_format($successRate, 1) }}%</span>
+                                    <span class="small text-muted">{{ number_format($ag->success_rate, 1) }}%</span>
                                 </div>
                             </td>
                         </tr>
@@ -619,6 +351,7 @@
 @endsection
 
 @section('page-scripts')
+@include('callcenter.partials._frest_js_init')
     <script>
         // Tab switching
         document.querySelectorAll('.adm-tab').forEach(tab => {

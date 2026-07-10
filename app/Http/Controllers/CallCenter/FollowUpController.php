@@ -13,14 +13,16 @@ class FollowUpController extends Controller
 {
     /**
      * Follow-up patient list with filters.
+     *
+     * FIX: Uses `died` column instead of non-existent `is_active`.
      */
     public function index(Request $request)
     {
         $agent = Auth::user();
 
-        // Patients who have a follow-up task pending for this agent
+        // Patients who are alive (died = 0) and have the 'patient' role
         $query = User::whereHas('roles', fn($q) => $q->where('name', 'patient'))
-            ->where('is_active', true)
+            ->where('died', 0)
             ->with(['latestCallLog' => fn($q) => $q->where('call_by', $agent->id)])
             ->withCount(['callLogs as call_count'])
             ->withMax('callLogs as last_call_date', 'call_date');
@@ -41,9 +43,9 @@ class FollowUpController extends Controller
         }
         if ($request->filled('status')) {
             $outcomeMap = [
-                'not_called'       => fn($q) => $q->doesntHave('callLogs'),
-                'callback_needed'  => fn($q) => $q->whereHas('callLogs', fn($q2) => $q2->where('caller_opinion', 'callback')),
-                'busy'             => fn($q) => $q->whereHas('callLogs', fn($q2) => $q2->where('caller_opinion', 'busy')),
+                'not_called'      => fn($q) => $q->doesntHave('callLogs'),
+                'callback_needed' => fn($q) => $q->whereHas('callLogs', fn($q2) => $q2->where('caller_opinion', 'callback')),
+                'busy'            => fn($q) => $q->whereHas('callLogs', fn($q2) => $q2->where('caller_opinion', 'busy')),
             ];
             if (isset($outcomeMap[$request->status])) {
                 $outcomeMap[$request->status]($query);
@@ -52,7 +54,7 @@ class FollowUpController extends Controller
 
         $patients = $query->paginate(50)->withQueryString();
 
-        $agents = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent','supervisor']))->get(['id','name']);
+        $agents = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent', 'supervisor']))->get(['id', 'name']);
 
         return view('callcenter.followup.index', compact('patients', 'agents', 'agent'));
     }
@@ -75,7 +77,6 @@ class FollowUpController extends Controller
         $priority = $request->priority  ?? 'medium';
 
         foreach ($request->patient_ids as $patientId) {
-            // Skip if already has pending task today
             $exists = Task::where('patient_id', $patientId)
                 ->where('agent_id', $agent->id)
                 ->pending()

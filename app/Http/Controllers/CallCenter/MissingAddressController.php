@@ -10,11 +10,30 @@ use Illuminate\Support\Facades\Auth;
 
 class MissingAddressController extends Controller
 {
+    /** Maps a record status to its Blade pill CSS class. Keeps the view free of lookup logic. */
+    public const STATUS_PILL_CLASSES = [
+        'updated'  => 'fp-success',
+        'delivered'=> 'fp-info',
+        'awaiting' => 'fp-warning',
+        'pending'  => 'fp-secondary',
+    ];
+
     public function index()
     {
         $records = MissingAddress::with('patient')->latest()->paginate(30);
 
-        return view('callcenter.missing_address.index', compact('records'));
+        $stats = [
+            'total'    => MissingAddress::count(),
+            'pending'  => MissingAddress::where('status', 'pending')->count(),
+            'awaiting' => MissingAddress::where('status', 'awaiting')->count(),
+            'resolved' => MissingAddress::whereIn('status', ['updated', 'delivered'])->count(),
+        ];
+
+        return view('callcenter.missing_address.index', [
+            'records' => $records,
+            'stats' => $stats,
+            'statusPillClasses' => self::STATUS_PILL_CLASSES,
+        ]);
     }
 
     public function store(Request $request)

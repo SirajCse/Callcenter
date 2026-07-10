@@ -3,33 +3,6 @@
 
 @section('page-styles')
 @include('callcenter.partials._frest_css')
-<style>
-.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
-@media(max-width:768px){.stat-row{grid-template-columns:repeat(2,1fr)}}
-
-.filters-card{background:#fff;border:1px solid var(--cc-border);border-radius:var(--cc-r2);padding:12px 14px;margin-bottom:12px;box-shadow:var(--cc-shadow-sm)}
-.filters-grid{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:8px;align-items:end}
-@media(max-width:768px){.filters-grid{grid-template-columns:repeat(2,1fr)}}
-.filters-grid .form-control,.filters-grid select,.filters-grid input{height:34px;font-size:12px;border-radius:var(--cc-r2);border:1px solid var(--cc-border2);padding:6px 10px}
-.filters-grid .form-control:focus,.filters-grid select:focus,.filters-grid input:focus{border-color:var(--cc-primary);box-shadow:0 0 0 3px rgba(90,141,238,.12);outline:none}
-
-#calllogsTable{font-size:12px;width:100%!important}
-#calllogsTable thead th{background:#fafafa;color:var(--cc-text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;border-bottom:2px solid var(--cc-border);border-top:none}
-#calllogsTable tbody td{padding:10px 12px;vertical-align:middle;color:var(--cc-text);border-top:1px solid var(--cc-border)}
-#calllogsTable tbody tr:hover td{background:rgba(90,141,238,.03)}
-
-.btn-icon{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:none;cursor:pointer;transition:all .2s;font-size:11px;text-decoration:none}
-.btn-icon.outline{background:rgba(71,95,123,.08);color:var(--cc-text-muted)}
-.btn-icon.outline:hover{background:var(--cc-primary-light);color:var(--cc-primary)}
-.btn-icon.primary{background:var(--cc-primary-light);color:var(--cc-primary)}
-.btn-icon.primary:hover{background:var(--cc-primary);color:#fff}
-
-.dataTables_wrapper .dataTables_length select,
-.dataTables_wrapper .dataTables_filter input{height:32px;border-radius:var(--cc-r2);border:1px solid var(--cc-border2);padding:4px 10px;font-size:12px}
-.dataTables_wrapper .dataTables_paginate .paginate_button{padding:5px 10px;border-radius:var(--cc-r);font-size:12px}
-.dataTables_wrapper .dataTables_paginate .paginate_button.current{background:var(--cc-primary)!important;border-color:var(--cc-primary)!important;color:#fff!important}
-.dataTables_wrapper .dataTables_info,.dataTables_wrapper label{font-size:11px;color:var(--cc-text-muted)}
-</style>
 @endsection
 
 @section('content')
@@ -41,33 +14,26 @@
     <a href="{{ route('callcenter.board') }}" class="btn-frest outline sm"><i class="fas fa-arrow-left"></i> Board</a>
   </div>
 
-  {{-- Stat Cards --}}
-  @php
-    $allLogs     = \App\Models\PatientCallLog::where('call_by', auth()->id());
-    $totalLogs   = (clone $allLogs)->count();
-    $answered    = (clone $allLogs)->where('receive', 1)->count();
-    $noAnswer    = (clone $allLogs)->where('receive', 0)->count();
-    $todayLogs   = (clone $allLogs)->whereDate('call_date', today())->count();
-  @endphp
+  {{-- Stat Cards (computed in PatientCallLogController@index) --}}
   <div class="stat-row">
     <div class="cc-stat-card primary">
       <div class="sc-icon"><i class="fas fa-phone-alt"></i></div>
-      <div class="sc-num">{{ $totalLogs }}</div>
+      <div class="sc-num">{{ $stats['total'] }}</div>
       <div class="sc-label">Total Calls</div>
     </div>
     <div class="cc-stat-card success">
       <div class="sc-icon"><i class="fas fa-phone-volume"></i></div>
-      <div class="sc-num">{{ $answered }}</div>
+      <div class="sc-num">{{ $stats['answered'] }}</div>
       <div class="sc-label">Answered</div>
     </div>
     <div class="cc-stat-card danger">
       <div class="sc-icon"><i class="fas fa-phone-slash"></i></div>
-      <div class="sc-num">{{ $noAnswer }}</div>
+      <div class="sc-num">{{ $stats['no_answer'] }}</div>
       <div class="sc-label">No Answer</div>
     </div>
     <div class="cc-stat-card warning">
       <div class="sc-icon"><i class="fas fa-calendar-day"></i></div>
-      <div class="sc-num">{{ $todayLogs }}</div>
+      <div class="sc-num">{{ $stats['today'] }}</div>
       <div class="sc-label">Today</div>
     </div>
   </div>
@@ -197,6 +163,7 @@
 @endsection
 
 @section('page-scripts')
+@include('callcenter.partials._frest_js_init')
 <script>
 $(document).ready(function() {
     if ($.fn.DataTable.isDataTable('#calllogsTable')) $('#calllogsTable').DataTable().destroy();
@@ -211,7 +178,7 @@ $(document).ready(function() {
 });
 
 function openCallHistory(patientId) {
-    $.get('{{ url("callcenter/calllogs/history") }}/' + patientId, function(res) {
+    $.get('{{ route("callcenter.calllogs.history", ["patientId" => "__ID__"]) }}'.replace('__ID__', patientId), function(res) {
         $('#callHistoryBody').html(res.html);
         $('#modalCallHistory').modal('show');
     });
