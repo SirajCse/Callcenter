@@ -130,13 +130,37 @@ class CallBoardController extends Controller
      */
     public function dialPatient(Request $request, DialService $dialer)
     {
-        $request->validate([
-            'patient_id' => 'required|exists:users,id',
-            'task_id'    => 'nullable|exists:tasks,id',
-        ]);
+        $patientId = $request->input('patient_id');
+        $taskId    = $request->input('task_id');
 
-        $patient = User::findOrFail($request->patient_id);
-        $result  = $dialer->dialPatient($patient, $request->task_id);
+        // ── Manual validation with clear error messages ──────────
+        if (! $patientId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No patient ID provided.',
+            ], 422);
+        }
+
+        // Use withTrashed() so deceased/soft-deleted patients can still be dialed
+        $patient = User::withTrashed()->find($patientId);
+        if (! $patient) {
+            return response()->json([
+                'success' => false,
+                'message' => "Patient not found (ID: {$patientId}).",
+            ], 422);
+        }
+
+        if ($taskId) {
+            $task = Task::find($taskId);
+            if (! $task) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Task not found (ID: {$taskId}).",
+                ], 422);
+            }
+        }
+
+        $result = $dialer->dialPatient($patient, $taskId ?: null);
 
         return response()->json($result, $result['success'] ? 200 : 422);
     }

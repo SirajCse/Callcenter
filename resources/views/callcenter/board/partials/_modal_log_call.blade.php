@@ -145,6 +145,8 @@
 
 <script>
 // ── AJAX submit handler ────────────────────────────────────
+// If auto-dial already created a call log (window._pendingCallLogId),
+// UPDATE the outcome instead of creating a duplicate.
 function submitLogCall(event) {
     if (event) event.preventDefault();
     var $form = $('#logCallForm');
@@ -152,16 +154,23 @@ function submitLogCall(event) {
     var prev  = $btn.html();
     $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Saving...');
 
+    // ★ If auto-dial created a log, update its outcome instead of creating a new one
+    var submitUrl = $form.attr('action');
+    if (window._pendingCallLogId) {
+        submitUrl = '{{ route("callcenter.calllogs.outcome", ":id") }}'.replace(':id', window._pendingCallLogId);
+    }
+
     $.ajax({
-        url:  $form.attr('action'),
+        url:  submitUrl,
         type: 'POST',
         data: $form.serialize(),
         dataType: 'json'
     }).done(function (res) {
         if (res && res.success) {
-            toastr.success('Call logged successfully.');
+            toastr.success(res.message || 'Call logged successfully.');
             $('#modalLogCall').modal('hide');
             $form[0].reset();
+            window._pendingCallLogId = null;
             setTimeout(function () { location.reload(); }, 600);
         } else {
             toastr.error((res && res.message) || 'Failed to log call.');
@@ -181,14 +190,14 @@ function submitLogCall(event) {
 // ── Dial & Log: trigger auto-dial, force outgoing, then submit ─
 function dialAndLog() {
     var patientId = $('#logCallPatientId').val();
+    var taskId    = $('#logCallTaskId').val();
     // Force "outgoing" since we are initiating the call.
     $('#logCallMethod').val('outgoing');
 
     // Trigger the auto-dial function defined in board.js (MikoPBX).
-    // If unavailable, fall back to a simple toast and proceed.
     if (typeof dialPatient === 'function' && patientId) {
         try {
-            var promise = dialPatient(patientId);
+            var promise = dialPatient(patientId, taskId);
             if (promise && typeof promise.then === 'function') {
                 promise.then(function () { submitLogCall(null); })
                        .catch(function () {

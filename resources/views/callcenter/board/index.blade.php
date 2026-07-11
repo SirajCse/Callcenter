@@ -282,12 +282,8 @@
 @endsection
 
 @section('page-scripts')
-{{-- ★ NEW: Auto-dial + AJAX form handler JS --}}
-<script>
-window.CC_DIAL_URL = '{{ route("callcenter.dial") }}';
-window.CC_OUTCOME_URL_TEMPLATE = '{{ route("callcenter.calllogs.outcome", ":id") }}'.replace(':id', '__ID__');
-window.CC_SMS_TEMPLATES = @json(\App\Models\CallCenter\SmsLog::TEMPLATES);
-</script>
+{{-- ★ Auto-dial JS (only dialPatient + dialAndOpenLogCall + modal focus fix) --}}
+{{-- All form-submit handlers are defined inline in their respective modal blade files --}}
 <script src="{{ asset('js/callcenter/board.js') }}"></script>
 
 <script>
@@ -366,16 +362,27 @@ function loadPatient(id) {
 // ── Task Actions ───────────────────────────────────────────
 function completeTask(id) {
     $.post('{{ route("callcenter.tasks.complete", ":id") }}'.replace(':id', id),
-        { _token: '{{ csrf_token() }}' },
-        function(res) { if (res.success) { toastr.success(res.message); location.reload(); } }
-    );
+        { _token: '{{ csrf_token() }}' }
+    ).done(function(res) {
+        if (res.success) { toastr.success(res.message || 'Task completed.'); location.reload(); }
+        else { toastr.error(res.message || 'Failed to complete task.'); }
+    }).fail(function(xhr) {
+        toastr.error((xhr.responseJSON && xhr.responseJSON.message) || 'Server error completing task.');
+    });
 }
-function transferTask(id) { $('#transferTaskId').val(id); $('#modalTransfer').modal('show'); }
+function transferTask(id) {
+    $('#transferTaskId').val(id);
+    $('#modalTransfer').modal('show');
+}
 function pinTask(id) {
     $.post('{{ route("callcenter.tasks.pin", ":id") }}'.replace(':id', id),
-        { _token: '{{ csrf_token() }}' },
-        function(res) { if(res.success) location.reload(); }
-    );
+        { _token: '{{ csrf_token() }}' }
+    ).done(function(res) {
+        if (res.success) { toastr.success(res.pinned ? 'Task pinned.' : 'Task unpinned.'); location.reload(); }
+        else { toastr.error(res.message || 'Failed to toggle pin.'); }
+    }).fail(function(xhr) {
+        toastr.error((xhr.responseJSON && xhr.responseJSON.message) || 'Server error pinning task.');
+    });
 }
 
 // ── Modals ─────────────────────────────────────────────────
