@@ -160,36 +160,115 @@ class PatientCallLogController extends Controller
     /**
      * ★ NEW: Update a call log's outcome after auto-dial.
      * POST /callcenter/calllogs/{callLog}/outcome
+     *
+     * Handles ALL the same side effects as store():
+     *   - Mark patient deceased (die=1 → died=1, died_date=today)
+     *   - Complete linked task (if receive=1 and task_id set)
+     *   - Create follow-up task (if followup_target_date set)
+     *   - Log SMS (if sms_sent=1)
+     *   - Log Letter (if letter_sent=1)
+     *   - Recalculate agent daily stats
      */
     public function updateOutcome(Request $request, PatientCallLog $callLog, DialService $dialer)
     {
         $validated = $request->validate([
-            'caller_opinion'  => 'required|string',
-            'duration'        => 'nullable|integer',
-            'call_note'       => 'nullable|string',
-            'receive'         => 'boolean',
-            'die'             => 'boolean',
-            'transfer_to'     => 'nullable|exists:users,id',
-            'transfer_cause'  => 'nullable|string',
+            'caller_opinion'       => 'required|string',
+            'duration'             => 'nullable|integer',
+            'call_note'            => 'nullable|string',
+            'receive'              => 'boolean',
+            'die'                  => 'boolean',
+            'transfer_to'          => 'nullable|exists:users,id',
+            'transfer_cause'       => 'nullable|string',
+            'priority'             => 'nullable|in:high,medium,low',
+            'followup_target_date' => 'nullable|date',
+            'followup_target_note' => 'nullable|string',
+            'sms_sent'             => 'boolean',
+            'letter_sent'          => 'boolean',
         ]);
 
-        $log = $dialer->updateOutcome($callLog->id, $validated);
+        DB::beginTransaction();
+        try {
+            // ── Update the call log fields ────────────────────────
+            $log = $dialer->updateOutcome($callLog->id, $validated);
 
-        if (! $log) {
-            return response()->json(['success' => false, 'message' => 'Call log not found.'], 404);
+            if (! $log) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Call log not found.'], 404);
+            }
+
+            // ── Mark patient deceased ─────────────────────────────
+            if (!empty($validated['die'])) {
+                User::where('id', $log->patient_id)->update([
+                    'died'      => 1,
+                    'died_date' => today(),
+                ]);
+            }
+
+            // ── Complete linked task (if call was answered) ───────
+            if ($log->task_id && !empty($validated['receive'])) {
+                Task::where('id', $log->task_id)->update([
+                    'status'       => 'completed',
+                    'completed_at' => now(),
+                ]);
+            }
+
+            // ── Create follow-up task ─────────────────────────────
+            if (!empty($validated['followup_target_date'])) {
+                Task::create([
+                    'patient_id'           => $log->patient_id,
+                    'agent_id'             => Auth::id(),
+                    'assigned_by'          => Auth::id(),
+                    'title'                => 'Follow-up: ' . (Auth::user()->name ?? ''),
+                    'task_type'            => 'followup_call',
+                    'call_type'            => 'outgoing',
+                    'priority'             => $validated['priority'] ?? 'medium',
+                    'status'               => 'pending',
+                    'due_date'             => $validated['followup_target_date'],
+                    'note'                 => $validated['followup_target_note'] ?? '',
+                    'followup_target_note' => $validated['followup_target_note'] ?? '',
+                    'followup_target_date' => $validated['followup_target_date'],
+                ]);
+            }
+
+            // ── Log SMS ───────────────────────────────────────────
+            if (!empty($validated['sms_sent'])) {
+                $patient = User::find($log->patient_id);
+                SmsLog::create([
+                    'patient_id'   => $log->patient_id,
+                    'agent_id'     => Auth::id(),
+                    'task_id'      => $log->task_id,
+                    'call_log_id'  => $log->id,
+                    'phone_number' => $patient?->phone ?? '',
+                    'message'      => SmsLog::TEMPLATES['missed'],
+                    'status'       => 'sent',
+                    'sent_at'      => now(),
+                ]);
+            }
+
+            // ── Log Letter ────────────────────────────────────────
+            if (!empty($validated['letter_sent'])) {
+                $patient = User::find($log->patient_id);
+                LetterLog::create([
+                    'patient_id'       => $log->patient_id,
+                    'agent_id'         => Auth::id(),
+                    'task_id'          => $log->task_id,
+                    'call_log_id'      => $log->id,
+                    'delivery_address' => $patient?->address ?? '',
+                    'reason'           => 'invalid_phone',
+                    'status'           => 'queued',
+                ]);
+            }
+
+            AgentDailyStat::recalculate(Auth::id());
+
+            DB::commit();
+
+            return response()->json(['success' => true, 'log' => $log, 'message' => 'Call outcome saved.']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
-
-        // Mark patient deceased if flagged
-        if (!empty($validated['die'])) {
-            User::where('id', $log->patient_id)->update([
-                'died'      => 1,
-                'died_date' => today(),
-            ]);
-        }
-
-        AgentDailyStat::recalculate(Auth::id());
-
-        return response()->json(['success' => true, 'log' => $log, 'message' => 'Call outcome updated.']);
     }
 
     /**

@@ -54,6 +54,7 @@ class DialService
         }
 
         // ── 3. Create a PatientCallLog entry (dialing state) ────
+        // NOTE: task_id is NOT in PatientCallLog::$fillable, so we set it after create.
         $log = PatientCallLog::create([
             'patient_id'   => $patient->id,
             'call_by'      => $agent->id,
@@ -66,9 +67,14 @@ class DialService
             'receive'      => 0,
             'die'          => 0,
             'call_count'   => PatientCallLog::where('patient_id', $patient->id)->count() + 1,
-            'task_id'      => $taskId,
             'caller_opinion' => 'dialing',
         ]);
+
+        // Set task_id separately (not in $fillable)
+        if ($taskId) {
+            $log->task_id = $taskId;
+            $log->save();
+        }
 
         // ── 4. Fire the AMI Originate via MikoPBX trait ─────────
         try {

@@ -289,6 +289,19 @@
 <script>
 var currentPatientId = {{ $patient?->id ?? 'null' }};
 
+// ★ Patient data cache for auto-filling modal fields (phone, address)
+window.ccPatientData = {};
+@if($patient)
+window.ccPatientData[{{ $patient->id }}] = {
+    id: {{ $patient->id }},
+    name: @json($patient->name),
+    phone: @json($patient->phone),
+    address: @json($patient->address),
+    email: @json($patient->email),
+    register_id: @json($patient->register_id),
+};
+@endif
+
 // ── Select2 Patient Search ─────────────────────────────────
 $('#ccPatientSearch').select2({
     placeholder: 'Search Patient by Name/PID/NID/Phone/Reg',
@@ -354,6 +367,13 @@ function loadPatient(id) {
             $('.tabs-panel .cc-tab-body').remove();
             $('.tabs-nav').after(res.tabs);
             document.querySelectorAll('.tn-btn')[0].click();
+
+            // ★ Extract phone & address from rendered card for modal auto-fill
+            var $card = $('#patientCardWrap');
+            var phoneText = $card.find('.pc-pill.phone-ok, .pc-pill.phone-bad').text().replace(/^[^0-9+]+/, '').trim();
+            var addrText = $card.find('.pc-address').text().trim();
+            window.ccPatientData = window.ccPatientData || {};
+            window.ccPatientData[id] = { phone: phoneText, address: addrText };
         },
         error: function() { toastr.error('Failed to load patient data.'); }
     });
@@ -392,8 +412,25 @@ function openLogCall(patientId, taskId) {
     window._pendingCallLogId = null;
     $('#modalLogCall').modal('show');
 }
-function openSmsModal(patientId) { $('#smsPatientId').val(patientId || currentPatientId); $('#modalSms').modal('show'); }
-function openLetterModal(patientId) { $('#letterPatientId').val(patientId || currentPatientId); $('#modalLetter').modal('show'); }
+function openSmsModal(patientId) {
+    var pid = patientId || currentPatientId;
+    $('#smsPatientId').val(pid);
+    // Auto-fill phone if we have patient data
+    if (window.ccPatientData && window.ccPatientData[pid]) {
+        $('#smsPhone').val(window.ccPatientData[pid].phone || '');
+    }
+    $('#modalSms').modal('show');
+}
+function openLetterModal(patientId) {
+    var pid = patientId || currentPatientId;
+    $('#letterPatientId').val(pid);
+    // Auto-fill address if we have patient data
+    if (window.ccPatientData && window.ccPatientData[pid]) {
+        var p = window.ccPatientData[pid];
+        $('#letterAddress').val(p.address || '');
+    }
+    $('#modalLetter').modal('show');
+}
 function openCallHistory(patientId) {
     $.get('{{ route("callcenter.calllogs.history", ":id") }}'.replace(':id', patientId || currentPatientId),
         function(res) { $('#callHistoryBody').html(res.html); $('#modalCallHistory').modal('show'); }

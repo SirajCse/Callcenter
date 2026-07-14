@@ -4,7 +4,7 @@
     first, then opens the Log Call modal. All other action buttons are
     preserved (SMS, All Notes, New Task, Letter, Deceased). --}}
 @php
-    $isDeceased = $patient->is_active == false || ($patient->died ?? false);
+    $isDeceased = ($patient->died ?? 0) == 1 || $patient->died_date !== null;
     $phoneValid = !empty($patient->phone) && $patient->phone !== 'INVALID';
 
     $totalCalls = \App\Models\PatientCallLog::where('patient_id', $patient->id)->count();
@@ -80,9 +80,15 @@
 @endif
 
 <script>
+// ── Mark patient as deceased via Log Call modal (die=1) ───
 function confirmDeceased(id) {
-    if (confirm('⚠ Mark this patient as DECEASED? This action is significant.')) {
-        toastr.warning('Please update patient status via Edit Profile.');
+    if (confirm('⚠ Mark this patient as DECEASED? This will:\n\n  • Set died=1 and died_date=today\n  • Open the Log Call modal with "Mark Deceased" pre-checked\n\nContinue?')) {
+        // Open the log call modal and pre-check the deceased checkbox
+        openLogCall(id);
+        // Check the "die" checkbox
+        $('#callOutcomeSelect').val('dead');
+        $('input[name="die"][value="1"]').prop('checked', true);
+        $('input[name="receive"][value="1"]').prop('checked', false);
     }
 }
 </script>
