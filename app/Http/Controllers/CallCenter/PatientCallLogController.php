@@ -159,7 +159,9 @@ class PatientCallLogController extends Controller
 
     /**
      * ★ NEW: Update a call log's outcome after auto-dial.
-     * POST /callcenter/calllogs/{callLog}/outcome
+     * POST /callcenter/calllogs/{callLogId}/outcome
+     *
+     * ★ FIX: Use explicit $callLogId + findOrFail (route-model binding was failing).
      *
      * Handles ALL the same side effects as store():
      *   - Mark patient deceased (die=1 → died=1, died_date=today)
@@ -169,7 +171,7 @@ class PatientCallLogController extends Controller
      *   - Log Letter (if letter_sent=1)
      *   - Recalculate agent daily stats
      */
-    public function updateOutcome(Request $request, PatientCallLog $callLog, DialService $dialer)
+    public function updateOutcome(Request $request, $callLogId, DialService $dialer)
     {
         $validated = $request->validate([
             'caller_opinion'       => 'required|string',
@@ -188,8 +190,15 @@ class PatientCallLogController extends Controller
 
         DB::beginTransaction();
         try {
+            // ── Verify the call log exists ────────────────────────
+            $callLog = PatientCallLog::find($callLogId);
+            if (! $callLog) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Call log not found.'], 404);
+            }
+
             // ── Update the call log fields ────────────────────────
-            $log = $dialer->updateOutcome($callLog->id, $validated);
+            $log = $dialer->updateOutcome($callLogId, $validated);
 
             if (! $log) {
                 DB::rollBack();

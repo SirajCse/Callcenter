@@ -53,14 +53,19 @@ class TaskController extends Controller
         ]));
 
         if ($request->ajax()) {
-            return response()->json(['success' => true, 'task' => $task->load('patient')]);
+            return response()->json(['success' => true, 'task' => $task->load('patient'), 'message' => 'Task created successfully.']);
         }
 
         return back()->with('success', 'Task created successfully.');
     }
 
-    public function update(Request $request, Task $task)
+    /**
+     * ★ FIX: Use explicit $taskId + findOrFail (route-model binding was failing).
+     */
+    public function update(Request $request, $taskId)
     {
+        $task = Task::findOrFail($taskId);
+
         $validated = $request->validate([
             'title'                => 'sometimes|string|max:255',
             'task_type'            => 'sometimes|in:' . implode(',', array_keys(Task::TYPES)),
@@ -75,18 +80,22 @@ class TaskController extends Controller
         $task->update($validated);
 
         if ($request->ajax()) {
-            return response()->json(['success' => true]);
+            return response()->json(['success' => true, 'message' => 'Task updated.']);
         }
 
         return back()->with('success', 'Task updated.');
     }
 
-    public function destroy(Task $task)
+    /**
+     * ★ FIX: Use explicit $taskId + findOrFail.
+     */
+    public function destroy(Request $request, $taskId)
     {
+        $task = Task::findOrFail($taskId);
         $task->delete();
 
-        if (request()->ajax()) {
-            return response()->json(['success' => true]);
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Task deleted.']);
         }
 
         return back()->with('success', 'Task deleted.');
@@ -94,10 +103,12 @@ class TaskController extends Controller
 
     /**
      * Mark task as completed.
-     * FIX: Added AgentDailyStat::recalculate() call.
+     * ★ FIX: Use explicit $taskId + findOrFail.
      */
-    public function complete(Request $request, Task $task)
+    public function complete(Request $request, $taskId)
     {
+        $task = Task::findOrFail($taskId);
+
         $task->update([
             'status'       => 'completed',
             'completed_at' => now(),
@@ -114,9 +125,9 @@ class TaskController extends Controller
 
     /**
      * Transfer task to another agent.
-     * FIX: Null-safe note concatenation. Added recalculate.
+     * ★ FIX: Use explicit $taskId + findOrFail (route-model binding was failing).
      */
-    public function transfer(Request $request, Task $task)
+    public function transfer(Request $request, $taskId)
     {
         $request->validate([
             'transferred_to'  => 'required|exists:users,id',
@@ -124,6 +135,8 @@ class TaskController extends Controller
         ]);
 
         $agent = Auth::user();
+
+        $task = Task::findOrFail($taskId);
 
         $task->update([
             'status'          => 'transferred',
@@ -159,13 +172,16 @@ class TaskController extends Controller
 
     /**
      * Toggle pin.
+     * ★ FIX: Use explicit $taskId + findOrFail.
      */
-    public function pin(Request $request, Task $task)
+    public function pin(Request $request, $taskId)
     {
+        $task = Task::findOrFail($taskId);
+
         $task->update(['is_pinned' => !$task->is_pinned]);
 
         if ($request->ajax()) {
-            return response()->json(['success' => true, 'pinned' => $task->is_pinned]);
+            return response()->json(['success' => true, 'pinned' => $task->is_pinned, 'message' => $task->is_pinned ? 'Task pinned.' : 'Task unpinned.']);
         }
 
         return back();

@@ -1,5 +1,37 @@
 # MedCRM Pro — Call Center Fixed Files (Drop-in for Laravel 12)
 
+## ★ LATEST FIX: Route-Model Binding Removed
+
+All controllers now use **explicit `findOrFail($id)`** instead of route-model binding (`Task $task`). This fixes the "transfer/pin/complete not working" issue where the model wasn't resolving from the URL.
+
+**Pattern change:**
+```php
+// BEFORE (broken — route-model binding not resolving):
+public function transfer(Request $request, Task $task) { ... }
+
+// AFTER (fixed — explicit ID + findOrFail):
+public function transfer(Request $request, $taskId) {
+    $task = Task::findOrFail($taskId);
+    ...
+}
+```
+
+Route params also changed from `{task}` to `{id}`:
+```php
+// BEFORE: Route::post('/tasks/{task}/transfer', ...)
+// AFTER:  Route::post('/tasks/{id}/transfer', ...)
+```
+
+## Files updated in this round
+
+| File | Change |
+|---|---|
+| `routes/callcenter.php` | All `{task}` → `{id}`, `{callLog}` → `{id}`, `{sms}` → `{id}`, `{missingAddress}` → `{id}` |
+| `TaskController.php` | `update/destroy/complete/transfer/pin` all use `findOrFail($taskId)` |
+| `PatientCallLogController.php` | `updateOutcome` uses `findOrFail($callLogId)` |
+| `SmsLogController.php` | **NEW** (was unchanged before) — `resend` uses `findOrFail($smsId)` |
+| `MissingAddressController.php` | **NEW** (was unchanged before) — `update` uses `findOrFail($missingAddressId)` |
+
 ## Installation — "What goes where"
 
 Copy these files into your existing Laravel project root, preserving the folder structure:

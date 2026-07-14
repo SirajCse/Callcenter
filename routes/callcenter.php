@@ -12,8 +12,11 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| CALL CENTER ROUTES  (FIXED — auth middleware + auto-dial)
+| CALL CENTER ROUTES  (FIXED — auth middleware + auto-dial + explicit IDs)
 | Require this file in web.php:  require __DIR__.'/callcenter.php';
+|
+| ★ FIX: Route params use {id} (not {task}/{callLog}/{sms}/{missingAddress})
+|   and controllers use findOrFail($id) — avoids route-model binding issues.
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->prefix('callcenter')->name('callcenter.')->group(function () {
@@ -26,16 +29,16 @@ Route::middleware(['auth'])->prefix('callcenter')->name('callcenter.')->group(fu
 
     // ── Auto-Dial (MikoPBX) ──────────────────────────────────────
     Route::post('/dial',                        [CallBoardController::class, 'dialPatient'])->name('dial');
-    Route::post('/calllogs/{callLog}/outcome',  [PatientCallLogController::class, 'updateOutcome'])->name('calllogs.outcome');
+    Route::post('/calllogs/{id}/outcome',       [PatientCallLogController::class, 'updateOutcome'])->name('calllogs.outcome');
 
     // ── Tasks ────────────────────────────────────────────────────
     Route::get('/tasks',                        [TaskController::class, 'index'])->name('tasks.index');
     Route::post('/tasks',                       [TaskController::class, 'store'])->name('tasks.store');
-    Route::put('/tasks/{task}',                 [TaskController::class, 'update'])->name('tasks.update');
-    Route::delete('/tasks/{task}',              [TaskController::class, 'destroy'])->name('tasks.destroy');
-    Route::post('/tasks/{task}/complete',       [TaskController::class, 'complete'])->name('tasks.complete');
-    Route::post('/tasks/{task}/transfer',       [TaskController::class, 'transfer'])->name('tasks.transfer');
-    Route::post('/tasks/{task}/pin',            [TaskController::class, 'pin'])->name('tasks.pin');
+    Route::put('/tasks/{id}',                   [TaskController::class, 'update'])->name('tasks.update');
+    Route::delete('/tasks/{id}',                [TaskController::class, 'destroy'])->name('tasks.destroy');
+    Route::post('/tasks/{id}/complete',         [TaskController::class, 'complete'])->name('tasks.complete');
+    Route::post('/tasks/{id}/transfer',         [TaskController::class, 'transfer'])->name('tasks.transfer');
+    Route::post('/tasks/{id}/pin',              [TaskController::class, 'pin'])->name('tasks.pin');
 
     // ── Call Logs ────────────────────────────────────────────────
     Route::get('/calllogs',                     [PatientCallLogController::class, 'index'])->name('calllogs.index');
@@ -49,7 +52,7 @@ Route::middleware(['auth'])->prefix('callcenter')->name('callcenter.')->group(fu
     // ── SMS ──────────────────────────────────────────────────────
     Route::get('/sms',                          [SmsLogController::class, 'index'])->name('sms.index');
     Route::post('/sms',                         [SmsLogController::class, 'store'])->name('sms.store');
-    Route::post('/sms/{sms}/resend',            [SmsLogController::class, 'resend'])->name('sms.resend');
+    Route::post('/sms/{id}/resend',             [SmsLogController::class, 'resend'])->name('sms.resend');
 
     // ── Letters ──────────────────────────────────────────────────
     Route::get('/letters',                      [LetterLogController::class, 'index'])->name('letters.index');
@@ -58,7 +61,7 @@ Route::middleware(['auth'])->prefix('callcenter')->name('callcenter.')->group(fu
     // ── Missing Address ──────────────────────────────────────────
     Route::get('/missing-address',              [MissingAddressController::class, 'index'])->name('missing.index');
     Route::post('/missing-address',             [MissingAddressController::class, 'store'])->name('missing.store');
-    Route::put('/missing-address/{missingAddress}', [MissingAddressController::class, 'update'])->name('missing.update');
+    Route::put('/missing-address/{id}',         [MissingAddressController::class, 'update'])->name('missing.update');
 
     // ── Admin (supervisor/admin only) ────────────────────────────
     Route::middleware(['role:ADMINISTRATOR|SUPER-ADMIN|ADMIN'])->prefix('admin')->name('admin.')->group(function () {

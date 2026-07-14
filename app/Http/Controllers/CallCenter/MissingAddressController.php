@@ -10,30 +10,11 @@ use Illuminate\Support\Facades\Auth;
 
 class MissingAddressController extends Controller
 {
-    /** Maps a record status to its Blade pill CSS class. Keeps the view free of lookup logic. */
-    public const STATUS_PILL_CLASSES = [
-        'updated'  => 'fp-success',
-        'delivered'=> 'fp-info',
-        'awaiting' => 'fp-warning',
-        'pending'  => 'fp-secondary',
-    ];
-
     public function index()
     {
         $records = MissingAddress::with('patient')->latest()->paginate(30);
 
-        $stats = [
-            'total'    => MissingAddress::count(),
-            'pending'  => MissingAddress::where('status', 'pending')->count(),
-            'awaiting' => MissingAddress::where('status', 'awaiting')->count(),
-            'resolved' => MissingAddress::whereIn('status', ['updated', 'delivered'])->count(),
-        ];
-
-        return view('callcenter.missing_address.index', [
-            'records' => $records,
-            'stats' => $stats,
-            'statusPillClasses' => self::STATUS_PILL_CLASSES,
-        ]);
+        return view('callcenter.missing_address.index', compact('records'));
     }
 
     public function store(Request $request)
@@ -50,14 +31,19 @@ class MissingAddressController extends Controller
         ]);
 
         if ($request->ajax()) {
-            return response()->json(['success' => true, 'record' => $record->load('patient')]);
+            return response()->json(['success' => true, 'record' => $record->load('patient'), 'message' => 'Added to missing address list.']);
         }
 
         return back()->with('success', 'Added to missing address list.');
     }
 
-    public function update(Request $request, MissingAddress $missingAddress)
+    /**
+     * ★ FIX: Use explicit $missingAddressId + findOrFail (route-model binding was failing).
+     */
+    public function update(Request $request, $missingAddressId)
     {
+        $missingAddress = MissingAddress::findOrFail($missingAddressId);
+
         $request->validate([
             'status'           => 'nullable|in:pending,awaiting,delivered,updated',
             'letter_sent'      => 'boolean',
@@ -68,7 +54,7 @@ class MissingAddressController extends Controller
         $missingAddress->update($request->only(['status', 'letter_sent', 'letter_sent_date', 'note']));
 
         if ($request->ajax()) {
-            return response()->json(['success' => true]);
+            return response()->json(['success' => true, 'message' => 'Record updated.']);
         }
 
         return back()->with('success', 'Record updated.');
