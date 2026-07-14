@@ -16,6 +16,22 @@ class TaskController extends Controller
     {
         $agent = Auth::user();
         $tab   = $request->get('tab', 'pending');
+        $data  = app(CallCenterData::class);
+
+        // ★ Stats with EXACT keys the blade view uses
+        $stats = $data->taskStats($agent->id);
+
+        // ★ Tab metadata (icon/label/count) the blade @foreach($tabs) expects
+        $tabs = [
+            'pending'     => ['icon' => '📋', 'label' => 'Pending',     'count' => $stats['pending']],
+            'completed'   => ['icon' => '✅', 'label' => 'Completed',   'count' => $stats['completed']],
+            'transferred' => ['icon' => '🔄', 'label' => 'Transferred', 'count' => $stats['transferred']],
+            'pinned'      => ['icon' => '📌', 'label' => 'Pinned',      'count' => $stats['pinned']],
+            'priority'    => ['icon' => '⚠️', 'label' => 'High Priority','count' => $stats['priority']],
+        ];
+
+        // ★ Transfer agents for the dropdown
+        $transferAgents = $data->agents($agent->id);
 
         $tasks = Task::with('patient', 'agent', 'transferredTo')
             ->forAgent($agent->id)
@@ -27,12 +43,7 @@ class TaskController extends Controller
             ->orderByRaw("FIELD(priority,'high','medium','low')")
             ->paginate(25);
 
-        // ★ FIX: Pass $stats and $agents that the blade view expects
-        $common = app(CallCenterData::class)->getCommonData();
-
-        return view('callcenter.tasks.index', array_merge(
-            compact('tasks', 'tab', 'agent'), $common
-        ));
+        return view('callcenter.tasks.index', compact('tasks', 'tab', 'agent', 'stats', 'tabs', 'transferAgents'));
     }
 
     public function store(Request $request)

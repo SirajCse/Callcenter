@@ -54,13 +54,13 @@ class FollowUpController extends Controller
         }
 
         $patients = $query->paginate(50)->withQueryString();
+        $data     = app(CallCenterData::class);
 
-        // ★ FIX: Pass $stats and $agents that the blade view expects
-        $common = app(CallCenterData::class)->getCommonData();
+        // ★ Stats with EXACT keys the blade view uses: total, not_called, with_phone, no_phone
+        $stats  = $data->followUpStats($patients);
+        $agents = $data->agents();
 
-        return view('callcenter.followup.index', array_merge(
-            compact('patients', 'agent'), $common
-        ));
+        return view('callcenter.followup.index', compact('patients', 'agent', 'stats', 'agents'));
     }
 
     /**

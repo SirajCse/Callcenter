@@ -7,7 +7,6 @@ use App\Models\CallCenter\Task;
 use App\Models\CallCenter\AgentDailyStat;
 use App\Models\PatientCallLog;
 use App\Models\User;
-use App\Services\CallCenter\CallCenterData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,19 +14,36 @@ use Illuminate\Support\Facades\DB;
 class AdminCallCenterController extends Controller
 {
     /**
+     * Compute the KPI array the admin blade views use.
+     * Keys: total_agents, online_agents, tasks_today, pending_tasks, completed_today, overdue_tasks
+     */
+    private function kpi(): array
+    {
+        $agents = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent','supervisor']))->get();
+
+        return [
+            'total_agents'    => $agents->count(),
+            'online_agents'   => $agents->where('is_online', true)->count(),
+            'tasks_today'     => Task::whereDate('created_at', today())->count(),
+            'pending_tasks'   => Task::pending()->count(),
+            'completed_today' => Task::completed()->whereDate('completed_at', today())->count(),
+            'overdue_tasks'   => Task::pending()->where('due_date', '<', today())->count(),
+        ];
+    }
+
+    /**
      * Admin panel index.
      */
     public function index()
     {
-        $agents    = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent','supervisor']))->get();
+        $agents     = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent','supervisor']))->get();
         $todayStats = AgentDailyStat::with('agent')->whereDate('stat_date', today())->get();
+        $kpi        = $this->kpi();
 
-        // ★ FIX: Pass $stats that the blade view expects
-        $common = app(CallCenterData::class)->getCommonData();
+        // ★ Ranked agents (by success_rate desc) for the performance mini-card
+        $ranked = $todayStats->sortByDesc('success_rate')->values();
 
-        return view('callcenter.admin.index', array_merge(
-            compact('agents', 'todayStats'), $common
-        ));
+        return view('callcenter.admin.index', compact('agents', 'todayStats', 'kpi', 'ranked'));
     }
 
     /**
@@ -72,16 +88,13 @@ class AdminCallCenterController extends Controller
 
         $limit    = (int) ($request->count ?? 500);
         $patients = $query->limit($limit)->get(['id','name','phone','gender']);
-
-        $common = app(CallCenterData::class)->getCommonData();
+        $agents   = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent','supervisor']))->get();
 
         if ($request->ajax()) {
             return response()->json(['patients' => $patients, 'total' => $patients->count()]);
         }
 
-        return view('callcenter.admin.assign', array_merge(
-            compact('patients'), $common
-        ));
+        return view('callcenter.admin.assign', compact('patients', 'agents'));
     }
 
     /**
@@ -142,14 +155,9 @@ class AdminCallCenterController extends Controller
         $agents = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent','supervisor']))
             ->with(['currentTask' => fn($q) => $q->pending()->latest()])
             ->get();
+        $kpi = $this->kpi();
 
-        $todayStats = AgentDailyStat::whereDate('stat_date', today())->with('agent')->get();
-
-        $common = app(CallCenterData::class)->getCommonData();
-
-        return view('callcenter.admin.monitor', array_merge(
-            compact('agents', 'todayStats'), $common
-        ));
+        return view('callcenter.admin.monitor', compact('agents', 'kpi'));
     }
 
     /**
@@ -172,10 +180,6 @@ class AdminCallCenterController extends Controller
             ->orderByDesc('total_calls')
             ->get();
 
-        $common = app(CallCenterData::class)->getCommonData();
-
-        return view('callcenter.admin.performance', array_merge(
-            compact('stats', 'from', 'to'), $common
-        ));
+        return view('callcenter.admin.performance', compact('stats', 'from', 'to'));
     }
 }

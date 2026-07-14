@@ -13,16 +13,18 @@ class SmsLogController extends Controller
 {
     public function index(Request $request)
     {
+        $data = app(CallCenterData::class);
+
         $logs = SmsLog::with('patient', 'agent')
             ->when($request->status, fn($q, $v) => $q->where('status', $v))
             ->when($request->patient_id, fn($q, $v) => $q->where('patient_id', $v))
             ->latest()
             ->paginate(30);
 
-        // ★ FIX: Pass $stats and $agents that the blade view expects
-        $common = app(CallCenterData::class)->getCommonData();
+        // ★ Stats with EXACT keys the blade view uses: total, sent, failed, pending
+        $stats = $data->smsStats();
 
-        return view('callcenter.sms.index', array_merge(compact('logs'), $common));
+        return view('callcenter.sms.index', compact('logs', 'stats'));
     }
 
     public function store(Request $request)

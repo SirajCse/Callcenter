@@ -12,14 +12,16 @@ class LetterLogController extends Controller
 {
     public function index(Request $request)
     {
+        $data = app(CallCenterData::class);
+
         $letters = LetterLog::with('patient', 'agent')
             ->when($request->status, fn($q, $v) => $q->where('status', $v))
             ->latest()->paginate(30);
 
-        // ★ FIX: Pass $stats and $agents that the blade view expects
-        $common = app(CallCenterData::class)->getCommonData();
+        // ★ Stats with EXACT keys the blade view uses: total, sent, queued, printed
+        $stats = $data->letterStats();
 
-        return view('callcenter.letters.index', array_merge(compact('letters'), $common));
+        return view('callcenter.letters.index', compact('letters', 'stats'));
     }
 
     public function store(Request $request)

@@ -47,9 +47,9 @@ class CallBoardController extends Controller
         }
 
         // ── Common data (stats, agents) ────────────────────────────
-        $common = app(CallCenterData::class)->getCommonData();
-        $stats  = $common['stats'];
-        $agents = $common['agents'];
+        $ccData = app(CallCenterData::class);
+        $stats  = $ccData->boardStats($agentId);
+        $agents = $ccData->agents($agentId);
 
         // ── Task tabs ──────────────────────────────────────────────
         $tasks = [
@@ -113,7 +113,9 @@ class CallBoardController extends Controller
             ]);
         }
 
-        $common = app(CallCenterData::class)->getCommonData();
+        $ccData = app(CallCenterData::class);
+        $stats  = $ccData->boardStats(Auth::id());
+        $agents = $ccData->agents(Auth::id());
 
         $tasks = [
             'pending'     => Task::with('patient')->forAgent(Auth::id())->pending()->orderByRaw("FIELD(priority,'high','medium','low')")->get(),
@@ -123,7 +125,7 @@ class CallBoardController extends Controller
             'priority'    => Task::with('patient')->forAgent(Auth::id())->pending()->highPriority()->get(),
         ];
 
-        return view('callcenter.board.index', array_merge($data, $common, compact('tasks')));
+        return view('callcenter.board.index', array_merge($data, compact('stats', 'agents', 'tasks')));
     }
 
     /**
@@ -161,14 +163,17 @@ class CallBoardController extends Controller
     public function myCalls()
     {
         $agent = Auth::user();
+        $data  = app(CallCenterData::class);
+
         $logs = PatientCallLog::with('patient')
             ->where('call_by', $agent->id)
             ->latest('call_date')
             ->paginate(30);
 
-        $common = app(CallCenterData::class)->getCommonData();
+        // ★ Stats with EXACT keys the blade view uses
+        $stats = $data->callLogStats($agent->id);
 
-        return view('callcenter.calllogs.index', array_merge(compact('logs', 'agent'), $common));
+        return view('callcenter.calllogs.index', compact('logs', 'agent', 'stats'));
     }
 
     /**
@@ -177,15 +182,14 @@ class CallBoardController extends Controller
     public function myStats()
     {
         $agent      = Auth::user();
+        $ccData     = app(CallCenterData::class);
         $todayStat  = AgentDailyStat::where('agent_id', $agent->id)->whereDate('stat_date', today())->first();
         $monthStats = AgentDailyStat::where('agent_id', $agent->id)
             ->whereMonth('stat_date', now()->month)->get();
         $tasks = Task::with('patient')->forAgent($agent->id)->pending()->get();
 
-        $common = app(CallCenterData::class)->getCommonData();
+        $stats = $ccData->boardStats($agent->id);
 
-        return view('callcenter.board.my_stats', array_merge(
-            compact('agent', 'todayStat', 'monthStats', 'tasks'), $common
-        ));
+        return view('callcenter.board.my_stats', compact('agent', 'todayStat', 'monthStats', 'tasks', 'stats'));
     }
 }

@@ -13,12 +13,13 @@ class MissingAddressController extends Controller
 {
     public function index()
     {
+        $data    = app(CallCenterData::class);
         $records = MissingAddress::with('patient')->latest()->paginate(30);
 
-        // ★ FIX: Pass $stats and $agents that the blade view expects
-        $common = app(CallCenterData::class)->getCommonData();
+        // ★ Stats with EXACT keys the blade view uses: total, pending, awaiting, resolved
+        $stats = $data->missingAddressStats();
 
-        return view('callcenter.missing_address.index', array_merge(compact('records'), $common));
+        return view('callcenter.missing_address.index', compact('records', 'stats'));
     }
 
     public function store(Request $request)

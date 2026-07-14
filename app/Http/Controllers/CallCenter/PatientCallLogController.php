@@ -23,6 +23,7 @@ class PatientCallLogController extends Controller
     public function index(Request $request)
     {
         $agent = Auth::user();
+        $data  = app(CallCenterData::class);
 
         $logs = PatientCallLog::with('patient', 'caller', 'transfer')
             ->where('call_by', $agent->id)
@@ -33,12 +34,10 @@ class PatientCallLogController extends Controller
             ->latest('call_date')
             ->paginate(25);
 
-        // ★ FIX: Pass $stats and $agents that the blade view expects
-        $common = app(CallCenterData::class)->getCommonData();
+        // ★ Stats with EXACT keys the blade view uses: total, answered, no_answer, today
+        $stats = $data->callLogStats($agent->id);
 
-        return view('callcenter.calllogs.index', array_merge(
-            compact('logs', 'agent'), $common
-        ));
+        return view('callcenter.calllogs.index', compact('logs', 'agent', 'stats'));
     }
 
     /**
