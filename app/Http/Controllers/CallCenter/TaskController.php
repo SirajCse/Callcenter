@@ -14,24 +14,24 @@ class TaskController extends Controller
 {
     public function index(Request $request)
     {
-        $agent = Auth::user();
-        $tab   = $request->get('tab', 'pending');
-        $data  = app(CallCenterData::class);
+        $agent  = Auth::user();
+        $tab    = $request->get('tab', 'pending');
+        $ccData = app(CallCenterData::class);
 
-        // ★ Stats with EXACT keys the blade view uses
-        $stats = $data->taskStats($agent->id);
+        // ★ Stats with EXACT keys blade uses: pending, completed, transferred, pinned, priority, overdue
+        $stats = $ccData->taskStats($agent->id);
 
-        // ★ Tab metadata (icon/label/count) the blade @foreach($tabs) expects
+        // ★ $tabs array (icon/label/count) for the tab nav
         $tabs = [
-            'pending'     => ['icon' => '📋', 'label' => 'Pending',     'count' => $stats['pending']],
-            'completed'   => ['icon' => '✅', 'label' => 'Completed',   'count' => $stats['completed']],
-            'transferred' => ['icon' => '🔄', 'label' => 'Transferred', 'count' => $stats['transferred']],
-            'pinned'      => ['icon' => '📌', 'label' => 'Pinned',      'count' => $stats['pinned']],
-            'priority'    => ['icon' => '⚠️', 'label' => 'High Priority','count' => $stats['priority']],
+            'pending'     => ['icon' => '📋', 'label' => 'Pending',       'count' => $stats['pending']],
+            'completed'   => ['icon' => '✅', 'label' => 'Completed',     'count' => $stats['completed']],
+            'transferred' => ['icon' => '🔄', 'label' => 'Transferred',   'count' => $stats['transferred']],
+            'pinned'      => ['icon' => '📌', 'label' => 'Pinned',        'count' => $stats['pinned']],
+            'priority'    => ['icon' => '⚠️', 'label' => 'High Priority', 'count' => $stats['priority']],
         ];
 
-        // ★ Transfer agents for the dropdown
-        $transferAgents = $data->agents($agent->id);
+        // ★ $transferAgents for the transfer dropdown
+        $transferAgents = $ccData->agents($agent->id);
 
         $tasks = Task::with('patient', 'agent', 'transferredTo')
             ->forAgent($agent->id)
@@ -76,13 +76,9 @@ class TaskController extends Controller
         return back()->with('success', 'Task created successfully.');
     }
 
-    /**
-     * ★ FIX: Use explicit $taskId + findOrFail (route-model binding was failing).
-     */
-    public function update(Request $request, $taskId)
+    public function update(Request $request, $task)
     {
-        $task = Task::findOrFail($taskId);
-
+        $model = Task::findOrFail($task);
         $validated = $request->validate([
             'title'                => 'sometimes|string|max:255',
             'task_type'            => 'sometimes|in:' . implode(',', array_keys(Task::TYPES)),
@@ -93,114 +89,74 @@ class TaskController extends Controller
             'followup_target_date' => 'nullable|date',
             'is_pinned'            => 'boolean',
         ]);
-
-        $task->update($validated);
-
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'message' => 'Task updated.']);
-        }
-
-        return back()->with('success', 'Task updated.');
+        $model->update($validated);
+        return $request->ajax()
+            ? response()->json(['success' => true, 'message' => 'Task updated.'])
+            : back()->with('success', 'Task updated.');
     }
 
-    /**
-     * ★ FIX: Use explicit $taskId + findOrFail.
-     */
-    public function destroy(Request $request, $taskId)
+    public function destroy(Request $request, $task)
     {
-        $task = Task::findOrFail($taskId);
-        $task->delete();
-
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'message' => 'Task deleted.']);
-        }
-
-        return back()->with('success', 'Task deleted.');
+        $model = Task::findOrFail($task);
+        $model->delete();
+        return $request->ajax()
+            ? response()->json(['success' => true, 'message' => 'Task deleted.'])
+            : back()->with('success', 'Task deleted.');
     }
 
-    /**
-     * Mark task as completed.
-     * ★ FIX: Use explicit $taskId + findOrFail.
-     */
-    public function complete(Request $request, $taskId)
+    public function complete(Request $request, $task)
     {
-        $task = Task::findOrFail($taskId);
-
-        $task->update([
-            'status'       => 'completed',
-            'completed_at' => now(),
-        ]);
-
+        $model = Task::findOrFail($task);
+        $model->update(['status' => 'completed', 'completed_at' => now()]);
         AgentDailyStat::recalculate(Auth::id());
-
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'message' => 'Task marked as completed.']);
-        }
-
-        return back()->with('success', 'Task completed.');
+        return $request->ajax()
+            ? response()->json(['success' => true, 'message' => 'Task marked as completed.'])
+            : back()->with('success', 'Task completed.');
     }
 
-    /**
-     * Transfer task to another agent.
-     * ★ FIX: Use explicit $taskId + findOrFail (route-model binding was failing).
-     */
-    public function transfer(Request $request, $taskId)
+    public function transfer(Request $request, $task)
     {
         $request->validate([
             'transferred_to'  => 'required|exists:users,id',
             'transfer_reason' => 'nullable|string|max:500',
         ]);
-
         $agent = Auth::user();
+        $model = Task::findOrFail($task);
 
-        $task = Task::findOrFail($taskId);
-
-        $task->update([
+        $model->update([
             'status'          => 'transferred',
             'transferred_to'  => $request->transferred_to,
             'transfer_reason' => $request->transfer_reason,
             'transferred_at'  => now(),
         ]);
 
-        // Create a copy for the new agent
         Task::create([
-            'patient_id'           => $task->patient_id,
+            'patient_id'           => $model->patient_id,
             'agent_id'             => $request->transferred_to,
             'assigned_by'          => $agent->id,
-            'title'                => $task->title,
-            'task_type'            => $task->task_type,
-            'call_type'            => $task->call_type,
-            'priority'             => $task->priority,
+            'title'                => $model->title,
+            'task_type'            => $model->task_type,
+            'call_type'            => $model->call_type,
+            'priority'             => $model->priority,
             'status'               => 'pending',
-            'due_date'             => $task->due_date,
-            'note'                 => ($task->note ?? '') . "\n[Transferred from: {$agent->name}] " . ($request->transfer_reason ?? ''),
-            'followup_target_note' => $task->followup_target_note,
-            'followup_target_date' => $task->followup_target_date,
+            'due_date'             => $model->due_date,
+            'note'                 => ($model->note ?? '') . "\n[Transferred from: {$agent->name}] " . ($request->transfer_reason ?? ''),
+            'followup_target_note' => $model->followup_target_note,
+            'followup_target_date' => $model->followup_target_date,
         ]);
 
         AgentDailyStat::recalculate($agent->id);
-
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'message' => 'Task transferred successfully.']);
-        }
-
-        return back()->with('success', 'Task transferred.');
+        return $request->ajax()
+            ? response()->json(['success' => true, 'message' => 'Task transferred successfully.'])
+            : back()->with('success', 'Task transferred.');
     }
 
-    /**
-     * Toggle pin.
-     * ★ FIX: Use explicit $taskId + findOrFail.
-     */
-    public function pin(Request $request, $taskId)
+    public function pin(Request $request, $task)
     {
-        $task = Task::findOrFail($taskId);
-
-        $task->update(['is_pinned' => !$task->is_pinned]);
-
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'pinned' => $task->is_pinned, 'message' => $task->is_pinned ? 'Task pinned.' : 'Task unpinned.']);
-        }
-
-        return back();
+        $model = Task::findOrFail($task);
+        $model->update(['is_pinned' => !$model->is_pinned]);
+        return $request->ajax()
+            ? response()->json(['success' => true, 'pinned' => $model->is_pinned, 'message' => $model->is_pinned ? 'Task pinned.' : 'Task unpinned.'])
+            : back();
     }
 }

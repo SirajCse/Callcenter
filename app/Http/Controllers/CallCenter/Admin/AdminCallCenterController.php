@@ -5,7 +5,6 @@ namespace App\Http\Controllers\CallCenter\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CallCenter\Task;
 use App\Models\CallCenter\AgentDailyStat;
-use App\Models\PatientCallLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,8 +13,7 @@ use Illuminate\Support\Facades\DB;
 class AdminCallCenterController extends Controller
 {
     /**
-     * Compute the KPI array the admin blade views use.
-     * Keys: total_agents, online_agents, tasks_today, pending_tasks, completed_today, overdue_tasks
+     * KPI array for admin views.
      */
     private function kpi(): array
     {
@@ -32,23 +30,59 @@ class AdminCallCenterController extends Controller
     }
 
     /**
-     * Admin panel index.
+     * Build $rankedStats with computed properties the blade expects.
      */
-    public function index()
+    private function rankedStats()
     {
-        $agents     = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent','supervisor']))->get();
         $todayStats = AgentDailyStat::with('agent')->whereDate('stat_date', today())->get();
-        $kpi        = $this->kpi();
 
-        // ★ Ranked agents (by success_rate desc) for the performance mini-card
-        $ranked = $todayStats->sortByDesc('success_rate')->values();
+        return $todayStats->sortByDesc('success_rate')->values()->map(function ($stat, $index) {
+            $rank = $index + 1;
 
-        return view('callcenter.admin.index', compact('agents', 'todayStats', 'kpi', 'ranked'));
+            $stat->rank = $rank;
+
+            // Rank badge class + medal
+            if ($rank === 1) {
+                $stat->rank_border_class = 'border-warning';
+                $stat->rank_badge_class = 'badge-warning';
+                $stat->rank_medal = '🥇';
+            } elseif ($rank === 2) {
+                $stat->rank_border_class = 'border-secondary';
+                $stat->rank_badge_class = 'badge-secondary';
+                $stat->rank_medal = '🥈';
+            } elseif ($rank === 3) {
+                $stat->rank_border_class = 'border-info';
+                $stat->rank_badge_class = 'badge-info';
+                $stat->rank_medal = '🥉';
+            } else {
+                $stat->rank_border_class = 'border-light';
+                $stat->rank_badge_class = 'badge-light';
+                $stat->rank_medal = '';
+            }
+
+            // Success rate color
+            $rate = $stat->success_rate ?? 0;
+            if ($rate >= 80) {
+                $stat->success_rate_color = 'var(--cc-success, #39da8a)';
+            } elseif ($rate >= 60) {
+                $stat->success_rate_color = 'var(--cc-warning, #fdac41)';
+            } else {
+                $stat->success_rate_color = 'var(--cc-danger, #ff5b5b)';
+            }
+
+            return $stat;
+        });
     }
 
-    /**
-     * Filter patients by admin criteria.
-     */
+    public function index()
+    {
+        $agents       = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent','supervisor']))->get();
+        $kpi          = $this->kpi();
+        $rankedStats  = $this->rankedStats();
+
+        return view('callcenter.admin.index', compact('agents', 'kpi', 'rankedStats'));
+    }
+
     public function filterPatients(Request $request)
     {
         $query = User::query();
@@ -56,34 +90,22 @@ class AdminCallCenterController extends Controller
         if ($request->filled('gender')) {
             $query->where('gender', $request->gender);
         }
-
         if ($request->filled('age_from')) {
             $query->where(DB::raw('TIMESTAMPDIFF(YEAR, dob, CURDATE())'), '>=', $request->age_from);
         }
         if ($request->filled('age_to')) {
             $query->where(DB::raw('TIMESTAMPDIFF(YEAR, dob, CURDATE())'), '<=', $request->age_to);
         }
-
         if ($request->filled('last_visit_months')) {
             $date = now()->subMonths($request->last_visit_months);
-            $query->where(function ($q) use ($date) {
-                $q->whereDoesntHave('appointments')
-                  ->orWhereHas('appointments', fn($q2) => $q2->where('date', '<', $date));
-            });
+            $query->where(fn($q) => $q->whereDoesntHave('appointments')->orWhereHas('appointments', fn($q2) => $q2->where('date', '<', $date)));
         }
-
         if ($request->filled('not_called_days')) {
             $date = now()->subDays($request->not_called_days);
-            $query->where(function ($q) use ($date) {
-                $q->whereDoesntHave('callLogs')
-                  ->orWhereHas('callLogs', fn($q2) => $q2->where('call_date', '<', $date));
-            });
+            $query->where(fn($q) => $q->whereDoesntHave('callLogs')->orWhereHas('callLogs', fn($q2) => $q2->where('call_date', '<', $date)));
         }
-
         if ($request->filled('missed_followup') && $request->missed_followup === 'yes') {
-            $query->whereHas('tasks', fn($q) => $q->where('task_type', 'followup_call')
-                ->where('status', 'pending')
-                ->where('due_date', '<', today()));
+            $query->whereHas('tasks', fn($q) => $q->where('task_type', 'followup_call')->where('status', 'pending')->where('due_date', '<', today()));
         }
 
         $limit    = (int) ($request->count ?? 500);
@@ -97,9 +119,6 @@ class AdminCallCenterController extends Controller
         return view('callcenter.admin.assign', compact('patients', 'agents'));
     }
 
-    /**
-     * Assign filtered patients as tasks to agent(s).
-     */
     public function assignTasks(Request $request)
     {
         $request->validate([
@@ -122,47 +141,30 @@ class AdminCallCenterController extends Controller
 
         foreach ($request->patient_ids as $patientId) {
             $agentId = $agents[$agentIndex % count($agents)];
-
             Task::create([
-                'patient_id'  => $patientId,
-                'agent_id'    => $agentId,
-                'assigned_by' => Auth::id(),
-                'title'       => Task::TYPES[$request->task_type] ?? $request->task_type,
-                'task_type'   => $request->task_type,
-                'call_type'   => 'outgoing',
-                'priority'    => $request->priority,
-                'status'      => 'pending',
-                'due_date'    => $request->due_date ?? today(),
-                'note'        => $request->note ?? '',
+                'patient_id' => $patientId, 'agent_id' => $agentId, 'assigned_by' => Auth::id(),
+                'title' => Task::TYPES[$request->task_type] ?? $request->task_type, 'task_type' => $request->task_type,
+                'call_type' => 'outgoing', 'priority' => $request->priority, 'status' => 'pending',
+                'due_date' => $request->due_date ?? today(), 'note' => $request->note ?? '',
             ]);
-
             $count++;
             $agentIndex++;
         }
 
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'count' => $count, 'message' => "$count tasks assigned."]);
-        }
-
-        return back()->with('success', "$count tasks assigned.");
+        return $request->ajax()
+            ? response()->json(['success' => true, 'count' => $count, 'message' => "$count tasks assigned."])
+            : back()->with('success', "$count tasks assigned.");
     }
 
-    /**
-     * Live monitor.
-     */
     public function monitor()
     {
         $agents = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent','supervisor']))
-            ->with(['currentTask' => fn($q) => $q->pending()->latest()])
-            ->get();
+            ->with(['currentTask' => fn($q) => $q->pending()->latest()])->get();
         $kpi = $this->kpi();
 
         return view('callcenter.admin.monitor', compact('agents', 'kpi'));
     }
 
-    /**
-     * Agent performance ranking.
-     */
     public function performance(Request $request)
     {
         $from = $request->from ?? now()->startOfMonth()->toDateString();
@@ -176,9 +178,7 @@ class AdminCallCenterController extends Controller
                 DB::raw('SUM(transferred_tasks) as transferred_tasks'),
                 DB::raw('AVG(success_rate) as avg_success_rate')
             )
-            ->groupBy('agent_id')
-            ->orderByDesc('total_calls')
-            ->get();
+            ->groupBy('agent_id')->orderByDesc('total_calls')->get();
 
         return view('callcenter.admin.performance', compact('stats', 'from', 'to'));
     }

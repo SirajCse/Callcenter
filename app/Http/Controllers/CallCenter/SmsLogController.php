@@ -13,16 +13,15 @@ class SmsLogController extends Controller
 {
     public function index(Request $request)
     {
-        $data = app(CallCenterData::class);
+        $ccData = app(CallCenterData::class);
 
         $logs = SmsLog::with('patient', 'agent')
             ->when($request->status, fn($q, $v) => $q->where('status', $v))
             ->when($request->patient_id, fn($q, $v) => $q->where('patient_id', $v))
-            ->latest()
-            ->paginate(30);
+            ->latest()->paginate(30);
 
-        // ★ Stats with EXACT keys the blade view uses: total, sent, failed, pending
-        $stats = $data->smsStats();
+        // ★ Stats keys blade expects: total, sent, failed, pending
+        $stats = $ccData->smsStats();
 
         return view('callcenter.sms.index', compact('logs', 'stats'));
     }
@@ -38,42 +37,59 @@ class SmsLogController extends Controller
         ]);
 
         $sms = SmsLog::create([
-            'patient_id'   => $request->patient_id,
-            'agent_id'     => Auth::id(),
-            'task_id'      => $request->task_id,
-            'phone_number' => $request->phone_number,
-            'message'      => $request->message,
-            'template_key' => $request->template_key,
-            'status'       => 'pending',
-            'sent_at'      => now(),
+            'patient_id' => $request->patient_id, 'agent_id' => Auth::id(), 'task_id' => $request->task_id,
+            'phone_number' => $request->phone_number, 'message' => $request->message,
+            'template_key' => $request->template_key, 'status' => 'pending', 'sent_at' => now(),
         ]);
 
         // TODO: integrate real SMS gateway here
         $sms->update(['status' => 'sent']);
 
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'sms' => $sms, 'message' => 'SMS sent successfully.']);
-        }
-
-        return back()->with('success', 'SMS sent successfully.');
+        return $request->ajax()
+            ? response()->json(['success' => true, 'sms' => $sms, 'message' => 'SMS sent successfully.'])
+            : back()->with('success', 'SMS sent successfully.');
     }
 
-    /**
-     * ★ FIX: Use explicit $smsId + findOrFail (route-model binding was failing).
-     */
-    public function resend(Request $request, $smsId)
+    public function resend(Request $request, $sms)
     {
-        $sms = SmsLog::findOrFail($smsId);
-
-        $sms->increment('resend_count');
-        $sms->update(['status' => 'sent', 'sent_at' => now()]);
+        $model = SmsLog::findOrFail($sms);
+        $model->increment('resend_count');
+        $model->update(['status' => 'sent', 'sent_at' => now()]);
 
         // TODO: integrate real SMS gateway here
 
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'resend_count' => $sms->resend_count, 'message' => 'SMS resent.']);
+        return $request->ajax()
+            ? response()->json(['success' => true, 'resend_count' => $model->resend_count, 'message' => 'SMS resent.'])
+            : back()->with('success', 'SMS resent.');
+    }
+
+    /**
+     * ★ NEW: Bulk SMS — used by followup/index.blade.php
+     * POST /callcenter/sms/bulk { patient_ids, message }
+     */
+    public function bulk(Request $request)
+    {
+        $request->validate([
+            'patient_ids'   => 'required|array|min:1',
+            'patient_ids.*' => 'exists:users,id',
+            'message'       => 'required|string|max:500',
+        ]);
+
+        $count = 0;
+        foreach ($request->patient_ids as $patientId) {
+            $patient = User::find($patientId);
+            if ($patient && $patient->phone) {
+                SmsLog::create([
+                    'patient_id' => $patientId, 'agent_id' => Auth::id(),
+                    'phone_number' => $patient->phone, 'message' => $request->message,
+                    'status' => 'sent', 'sent_at' => now(),
+                ]);
+                $count++;
+            }
         }
 
-        return back()->with('success', 'SMS resent.');
+        return $request->ajax()
+            ? response()->json(['success' => true, 'count' => $count, 'message' => "$count SMS sent."])
+            : back()->with('success', "$count SMS sent.");
     }
 }

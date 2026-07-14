@@ -13,14 +13,13 @@ use Illuminate\Support\Facades\Auth;
 /**
  * Provides per-view $stats arrays + shared data for call-center views.
  *
- * Each view needs DIFFERENT $stats keys (e.g. calllogs needs
- * total/answered/no_answer/today, tasks needs pending/completed/...).
- * This service computes the correct keys for each view.
+ * Each blade view needs DIFFERENT $stats keys — these methods return
+ * the EXACT keys each view expects (verified by reading every blade file).
  */
 class CallCenterData
 {
     /**
-     * Stats for the BOARD view: completed, followup, pending, transferred.
+     * Board view: completed, followup, pending, transferred.
      */
     public function boardStats(int $agentId): array
     {
@@ -33,7 +32,7 @@ class CallCenterData
     }
 
     /**
-     * Stats for the TASKS view: pending, completed, transferred, pinned, priority, overdue.
+     * Tasks view: pending, completed, transferred, pinned, priority, overdue.
      */
     public function taskStats(int $agentId): array
     {
@@ -48,7 +47,7 @@ class CallCenterData
     }
 
     /**
-     * Stats for the CALL LOGS view: total, answered, no_answer, today.
+     * Call logs view: total, answered, no_answer, today.
      */
     public function callLogStats(int $agentId): array
     {
@@ -62,7 +61,7 @@ class CallCenterData
     }
 
     /**
-     * Stats for the FOLLOW-UP view: total, not_called, with_phone, no_phone.
+     * Follow-up view: total, not_called, with_phone, no_phone.
      * Computed for the current page of patients.
      */
     public function followUpStats($patients): array
@@ -74,7 +73,7 @@ class CallCenterData
 
         foreach ($patients as $p) {
             $hasPhone = !empty($p->phone) && $p->phone !== 'INVALID';
-            $hasCalls = $p->call_count > 0 || ($p->last_call_date !== null);
+            $hasCalls = ($p->call_count ?? 0) > 0 || ($p->last_call_date ?? null) !== null;
 
             if (!$hasCalls) $notCalled++;
             if ($hasPhone) $withPhone++;
@@ -85,7 +84,7 @@ class CallCenterData
     }
 
     /**
-     * Stats for the SMS view: total, sent, failed, pending.
+     * SMS view: total, sent, failed, pending.
      */
     public function smsStats(): array
     {
@@ -98,7 +97,7 @@ class CallCenterData
     }
 
     /**
-     * Stats for the LETTERS view: total, sent, queued, printed.
+     * Letters view: total, sent, queued, printed.
      */
     public function letterStats(): array
     {
@@ -111,15 +110,15 @@ class CallCenterData
     }
 
     /**
-     * Stats for the MISSING ADDRESS view: total, pending, awaiting, resolved.
+     * Missing address view: total, pending, awaiting, resolved.
      */
     public function missingAddressStats(): array
     {
         return [
-            'total'     => MissingAddress::count(),
-            'pending'   => MissingAddress::where('status', 'pending')->count(),
-            'awaiting'  => MissingAddress::where('status', 'awaiting')->count(),
-            'resolved'  => MissingAddress::where('status', 'resolved')->orWhere('status', 'delivered')->count(),
+            'total'    => MissingAddress::count(),
+            'pending'  => MissingAddress::where('status', 'pending')->count(),
+            'awaiting' => MissingAddress::where('status', 'awaiting')->count(),
+            'resolved' => MissingAddress::whereIn('status', ['resolved', 'delivered'])->count(),
         ];
     }
 
@@ -135,7 +134,6 @@ class CallCenterData
 
     /**
      * Patient-related counts for the patient card.
-     * Moves these queries OUT of the blade view and INTO the controller.
      */
     public function getPatientStats(int $patientId): array
     {

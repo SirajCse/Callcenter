@@ -19,15 +19,13 @@ use Illuminate\Support\Facades\Auth;
 
 class CallBoardController extends Controller
 {
-    /**
-     * Main call board – loads current agent's pending tasks + first patient.
-     */
     public function index(Request $request)
     {
         $agent   = Auth::user();
         $agentId = $agent?->id ?? 0;
+        $ccData  = app(CallCenterData::class);
 
-        // ── Patient from URL ?pid= or first pending task ──────────
+        // ── Patient from ?pid= or first pending task ──────────────
         $patient = null;
         $pid     = $request->get('pid');
 
@@ -35,35 +33,29 @@ class CallBoardController extends Controller
             $patient = User::find($pid);
         } else {
             $firstTask = Task::forAgent($agentId)->pending()
-                ->orderByRaw("FIELD(priority,'high','medium','low')")
-                ->first();
+                ->orderByRaw("FIELD(priority,'high','medium','low')")->first();
             if ($firstTask) {
                 $patient = $firstTask->patient;
             } else {
                 $patient = User::whereHas('roles', fn($q) => $q->where('name', 'patient'))
-                    ->where('died', 0)
-                    ->first();
+                    ->where('died', 0)->first();
             }
         }
 
-        // ── Common data (stats, agents) ────────────────────────────
-        $ccData = app(CallCenterData::class);
+        // ── Stats (EXACT keys blade expects) ───────────────────────
         $stats  = $ccData->boardStats($agentId);
         $agents = $ccData->agents($agentId);
 
         // ── Task tabs ──────────────────────────────────────────────
         $tasks = [
-            'pending'     => $agentId ? Task::with('patient')->forAgent($agentId)->pending()
-                                ->orderByRaw("FIELD(priority,'high','medium','low')")->get() : collect(),
-            'completed'   => $agentId ? Task::with('patient')->forAgent($agentId)->completed()
-                                ->whereDate('completed_at', today())->latest('completed_at')->get() : collect(),
-            'transferred' => $agentId ? Task::with('patient','transferredTo')->forAgent($agentId)->transferred()
-                                ->latest('transferred_at')->get() : collect(),
+            'pending'     => $agentId ? Task::with('patient')->forAgent($agentId)->pending()->orderByRaw("FIELD(priority,'high','medium','low')")->get() : collect(),
+            'completed'   => $agentId ? Task::with('patient')->forAgent($agentId)->completed()->whereDate('completed_at', today())->latest('completed_at')->get() : collect(),
+            'transferred' => $agentId ? Task::with('patient','transferredTo')->forAgent($agentId)->transferred()->latest('transferred_at')->get() : collect(),
             'pinned'      => $agentId ? Task::with('patient')->forAgent($agentId)->pinned()->pending()->get() : collect(),
             'priority'    => $agentId ? Task::with('patient')->forAgent($agentId)->pending()->highPriority()->get() : collect(),
         ];
 
-        // ── Patient tab data + patient stats (moved from blade) ────
+        // ── Patient tab data + patient stats ───────────────────────
         $appointments = collect();
         $callLogs     = collect();
         $labGroups    = collect();
@@ -79,21 +71,19 @@ class CallBoardController extends Controller
             $therapies    = Therapy::where('patient_id', $patient->id)->latest('date')->take(10)->get();
             $nebulizes    = Nebulize::where('patient_id', $patient->id)->latest('date')->take(10)->get();
             $vaccinations = Sale::where('patient_id', $patient->id)->latest('date')->take(10)->get();
-            $patientStats = app(CallCenterData::class)->getPatientStats($patient->id);
+            $patientStats = $ccData->getPatientStats($patient->id);
         }
 
         return view('callcenter.board.index', compact(
-            'agent', 'patient', 'stats', 'tasks', 'appointments', 'callLogs',
-            'labGroups', 'therapies', 'nebulizes', 'vaccinations', 'agents', 'patientStats'
+            'agent', 'patient', 'stats', 'tasks', 'agents', 'patientStats',
+            'appointments', 'callLogs', 'labGroups', 'therapies', 'nebulizes', 'vaccinations'
         ));
     }
 
-    /**
-     * Load patient data (AJAX) – called when switching patient in board.
-     */
     public function patient(Request $request, $id)
     {
         $patient = User::withTrashed()->findOrFail($id);
+        $ccData  = app(CallCenterData::class);
 
         $data = [
             'patient'      => $patient,
@@ -103,21 +93,19 @@ class CallBoardController extends Controller
             'therapies'    => Therapy::where('patient_id', $id)->latest('date')->take(10)->get(),
             'nebulizes'    => Nebulize::where('patient_id', $id)->latest('date')->take(10)->get(),
             'vaccinations' => Sale::where('patient_id', $id)->latest('date')->take(10)->get(),
-            'patientStats' => app(CallCenterData::class)->getPatientStats($id),
+            'patientStats' => $ccData->getPatientStats($id),
         ];
 
         if ($request->ajax()) {
             return response()->json([
-                'card'  => view('callcenter.board.partials._patient_card', $data)->render(),
-                'tabs'  => view('callcenter.board.partials._tabs', $data)->render(),
+                'card' => view('callcenter.board.partials._patient_card', $data)->render(),
+                'tabs' => view('callcenter.board.partials._tabs', $data)->render(),
             ]);
         }
 
-        $ccData = app(CallCenterData::class);
         $stats  = $ccData->boardStats(Auth::id());
         $agents = $ccData->agents(Auth::id());
-
-        $tasks = [
+        $tasks  = [
             'pending'     => Task::with('patient')->forAgent(Auth::id())->pending()->orderByRaw("FIELD(priority,'high','medium','low')")->get(),
             'completed'   => Task::with('patient')->forAgent(Auth::id())->completed()->whereDate('completed_at', today())->latest('completed_at')->get(),
             'transferred' => Task::with('patient','transferredTo')->forAgent(Auth::id())->transferred()->latest('transferred_at')->get(),
@@ -128,57 +116,45 @@ class CallBoardController extends Controller
         return view('callcenter.board.index', array_merge($data, compact('stats', 'agents', 'tasks')));
     }
 
-    /**
-     * ★ NEW: Auto-dial a patient via MikoPBX (AMI Originate).
-     */
     public function dialPatient(Request $request, DialService $dialer)
     {
         $patientId = $request->input('patient_id');
         $taskId    = $request->input('task_id');
 
-        if (! $patientId) {
+        if (!$patientId) {
             return response()->json(['success' => false, 'message' => 'No patient ID provided.'], 422);
         }
 
         $patient = User::withTrashed()->find($patientId);
-        if (! $patient) {
+        if (!$patient) {
             return response()->json(['success' => false, 'message' => "Patient not found (ID: {$patientId})."], 422);
         }
 
         if ($taskId) {
             $task = Task::find($taskId);
-            if (! $task) {
+            if (!$task) {
                 return response()->json(['success' => false, 'message' => "Task not found (ID: {$taskId})."], 422);
             }
         }
 
         $result = $dialer->dialPatient($patient, $taskId ?: null);
-
         return response()->json($result, $result['success'] ? 200 : 422);
     }
 
-    /**
-     * My last calls list.
-     */
     public function myCalls()
     {
-        $agent = Auth::user();
-        $data  = app(CallCenterData::class);
+        $agent  = Auth::user();
+        $ccData = app(CallCenterData::class);
 
         $logs = PatientCallLog::with('patient')
             ->where('call_by', $agent->id)
-            ->latest('call_date')
-            ->paginate(30);
+            ->latest('call_date')->paginate(30);
 
-        // ★ Stats with EXACT keys the blade view uses
-        $stats = $data->callLogStats($agent->id);
+        $stats = $ccData->callLogStats($agent->id);
 
-        return view('callcenter.calllogs.index', compact('logs', 'agent', 'stats'));
+        return view('callcenter.calllogs.index', compact('logs', 'stats'));
     }
 
-    /**
-     * My profile + stats.
-     */
     public function myStats()
     {
         $agent      = Auth::user();
@@ -188,8 +164,18 @@ class CallBoardController extends Controller
             ->whereMonth('stat_date', now()->month)->get();
         $tasks = Task::with('patient')->forAgent($agent->id)->pending()->get();
 
-        $stats = $ccData->boardStats($agent->id);
+        // ★ $todayItems — array of stat cards for the "Today" section
+        $todayItems = [
+            ['label' => 'Calls',       'value' => $todayStat?->total_calls ?? 0,       'icon' => 'phone-alt',     'color' => 'primary'],
+            ['label' => 'Answered',    'value' => $todayStat?->total_calls ?? 0,       'icon' => 'phone-volume',  'color' => 'success'],
+            ['label' => 'Completed',   'value' => $todayStat?->completed_tasks ?? 0,   'icon' => 'check-circle',  'color' => 'success'],
+            ['label' => 'Transferred', 'value' => $todayStat?->transferred_tasks ?? 0, 'icon' => 'exchange-alt',  'color' => 'warning'],
+        ];
 
-        return view('callcenter.board.my_stats', compact('agent', 'todayStat', 'monthStats', 'tasks', 'stats'));
+        // ★ $maxCalls — max calls in a single day (for bar chart scaling)
+        $maxCalls = $monthStats->max('total_calls') ?? 1;
+        $maxCalls = max($maxCalls, 1); // avoid division by zero
+
+        return view('callcenter.board.my_stats', compact('todayItems', 'monthStats', 'tasks', 'maxCalls'));
     }
 }
