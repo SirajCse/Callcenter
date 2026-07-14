@@ -13,6 +13,7 @@ use App\Models\Lab\Therapy;
 use App\Models\Lab\Nebulize;
 use App\Models\Lab\Sale;
 use App\Services\CallCenter\DialService;
+use App\Services\CallCenter\CallCenterData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -45,31 +46,10 @@ class CallBoardController extends Controller
             }
         }
 
-        // ── Load patient tab data ──────────────────────────────────
-        $appointments = collect();
-        $callLogs     = collect();
-        $labGroups    = collect();
-        $therapies    = collect();
-        $nebulizes    = collect();
-        $vaccinations = collect();
-
-        if ($patient) {
-            $appointments = Appointment::where('patient_id', $patient->id)->latest('date')->take(10)->get();
-            $callLogs     = PatientCallLog::where('patient_id', $patient->id)->with('caller')->latest('call_date')->take(20)->get();
-            $labGroups    = Group::where('patient_id', $patient->id)->with('items')->latest()->take(10)->get();
-            $therapies    = Therapy::where('patient_id', $patient->id)->latest('date')->take(10)->get();
-            $nebulizes    = Nebulize::where('patient_id', $patient->id)->latest('date')->take(10)->get();
-            $vaccinations = Sale::where('patient_id', $patient->id)->latest('date')->take(10)->get();
-        }
-
-        // ── Today stats ────────────────────────────────────────────
-        $stats = [
-            'completed'   => $agentId ? Task::forAgent($agentId)->completed()->whereDate('completed_at', today())->count() : 0,
-            'pending'     => $agentId ? Task::forAgent($agentId)->pending()->count() : 0,
-            'transferred' => $agentId ? Task::forAgent($agentId)->transferred()->whereDate('transferred_at', today())->count() : 0,
-            'followup'    => $agentId ? Task::forAgent($agentId)->pending()->where('task_type', 'followup_call')->count() : 0,
-            'missed'      => $agentId ? PatientCallLog::where('call_by', $agentId)->whereIn('caller_opinion', ['no_answer','busy','out_of_reach','wrong_number'])->count() : 0,
-        ];
+        // ── Common data (stats, agents) ────────────────────────────
+        $common = app(CallCenterData::class)->getCommonData();
+        $stats  = $common['stats'];
+        $agents = $common['agents'];
 
         // ── Task tabs ──────────────────────────────────────────────
         $tasks = [
@@ -83,13 +63,28 @@ class CallBoardController extends Controller
             'priority'    => $agentId ? Task::with('patient')->forAgent($agentId)->pending()->highPriority()->get() : collect(),
         ];
 
-        // ── Agents for transfer dropdown ───────────────────────────
-        $agents = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent', 'supervisor']))
-            ->where('id', '!=', $agentId)->get(['id', 'name']);
+        // ── Patient tab data + patient stats (moved from blade) ────
+        $appointments = collect();
+        $callLogs     = collect();
+        $labGroups    = collect();
+        $therapies    = collect();
+        $nebulizes    = collect();
+        $vaccinations = collect();
+        $patientStats = ['totalCalls' => 0, 'totalAppts' => 0, 'totalLabs' => 0, 'lastCall' => null, 'lastVisit' => null];
+
+        if ($patient) {
+            $appointments = Appointment::where('patient_id', $patient->id)->latest('date')->take(10)->get();
+            $callLogs     = PatientCallLog::where('patient_id', $patient->id)->with('caller')->latest('call_date')->take(20)->get();
+            $labGroups    = Group::where('patient_id', $patient->id)->with('items')->latest()->take(10)->get();
+            $therapies    = Therapy::where('patient_id', $patient->id)->latest('date')->take(10)->get();
+            $nebulizes    = Nebulize::where('patient_id', $patient->id)->latest('date')->take(10)->get();
+            $vaccinations = Sale::where('patient_id', $patient->id)->latest('date')->take(10)->get();
+            $patientStats = app(CallCenterData::class)->getPatientStats($patient->id);
+        }
 
         return view('callcenter.board.index', compact(
             'agent', 'patient', 'stats', 'tasks', 'appointments', 'callLogs',
-            'labGroups', 'therapies', 'nebulizes', 'vaccinations', 'agents'
+            'labGroups', 'therapies', 'nebulizes', 'vaccinations', 'agents', 'patientStats'
         ));
     }
 
@@ -108,6 +103,7 @@ class CallBoardController extends Controller
             'therapies'    => Therapy::where('patient_id', $id)->latest('date')->take(10)->get(),
             'nebulizes'    => Nebulize::where('patient_id', $id)->latest('date')->take(10)->get(),
             'vaccinations' => Sale::where('patient_id', $id)->latest('date')->take(10)->get(),
+            'patientStats' => app(CallCenterData::class)->getPatientStats($id),
         ];
 
         if ($request->ajax()) {
@@ -117,46 +113,40 @@ class CallBoardController extends Controller
             ]);
         }
 
-        return view('callcenter.board.index', array_merge($data, [
-            'agent'  => Auth::user(),
-            'agents' => User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent','supervisor']))->get(['id','name']),
-        ]));
+        $common = app(CallCenterData::class)->getCommonData();
+
+        $tasks = [
+            'pending'     => Task::with('patient')->forAgent(Auth::id())->pending()->orderByRaw("FIELD(priority,'high','medium','low')")->get(),
+            'completed'   => Task::with('patient')->forAgent(Auth::id())->completed()->whereDate('completed_at', today())->latest('completed_at')->get(),
+            'transferred' => Task::with('patient','transferredTo')->forAgent(Auth::id())->transferred()->latest('transferred_at')->get(),
+            'pinned'      => Task::with('patient')->forAgent(Auth::id())->pinned()->pending()->get(),
+            'priority'    => Task::with('patient')->forAgent(Auth::id())->pending()->highPriority()->get(),
+        ];
+
+        return view('callcenter.board.index', array_merge($data, $common, compact('tasks')));
     }
 
     /**
      * ★ NEW: Auto-dial a patient via MikoPBX (AMI Originate).
-     *
-     * POST /callcenter/dial  { patient_id, task_id? }
      */
     public function dialPatient(Request $request, DialService $dialer)
     {
         $patientId = $request->input('patient_id');
         $taskId    = $request->input('task_id');
 
-        // ── Manual validation with clear error messages ──────────
         if (! $patientId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No patient ID provided.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'No patient ID provided.'], 422);
         }
 
-        // Use withTrashed() so deceased/soft-deleted patients can still be dialed
         $patient = User::withTrashed()->find($patientId);
         if (! $patient) {
-            return response()->json([
-                'success' => false,
-                'message' => "Patient not found (ID: {$patientId}).",
-            ], 422);
+            return response()->json(['success' => false, 'message' => "Patient not found (ID: {$patientId})."], 422);
         }
 
         if ($taskId) {
             $task = Task::find($taskId);
             if (! $task) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Task not found (ID: {$taskId}).",
-                ], 422);
+                return response()->json(['success' => false, 'message' => "Task not found (ID: {$taskId})."], 422);
             }
         }
 
@@ -176,7 +166,9 @@ class CallBoardController extends Controller
             ->latest('call_date')
             ->paginate(30);
 
-        return view('callcenter.calllogs.index', compact('logs', 'agent'));
+        $common = app(CallCenterData::class)->getCommonData();
+
+        return view('callcenter.calllogs.index', array_merge(compact('logs', 'agent'), $common));
     }
 
     /**
@@ -190,6 +182,10 @@ class CallBoardController extends Controller
             ->whereMonth('stat_date', now()->month)->get();
         $tasks = Task::with('patient')->forAgent($agent->id)->pending()->get();
 
-        return view('callcenter.board.my_stats', compact('agent', 'todayStat', 'monthStats', 'tasks'));
+        $common = app(CallCenterData::class)->getCommonData();
+
+        return view('callcenter.board.my_stats', array_merge(
+            compact('agent', 'todayStat', 'monthStats', 'tasks'), $common
+        ));
     }
 }

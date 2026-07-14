@@ -4,14 +4,15 @@
     first, then opens the Log Call modal. All other action buttons are
     preserved (SMS, All Notes, New Task, Letter, Deceased). --}}
 @php
+    // ★ FIX: Use $patientStats passed from controller (no inline Model queries in blade)
     $isDeceased = ($patient->died ?? 0) == 1 || $patient->died_date !== null;
     $phoneValid = !empty($patient->phone) && $patient->phone !== 'INVALID';
 
-    $totalCalls = \App\Models\PatientCallLog::where('patient_id', $patient->id)->count();
-    $totalAppts = \App\Models\Chamber\Appointment::where('patient_id', $patient->id)->count();
-    $totalLabs  = \App\Models\Lab\Group::where('patient_id', $patient->id)->count();
-    $lastCall   = \App\Models\PatientCallLog::where('patient_id', $patient->id)->latest('call_date')->first();
-    $lastVisit  = \App\Models\Chamber\Appointment::where('patient_id', $patient->id)->latest('date')->value('date');
+    $totalCalls = $patientStats['totalCalls'] ?? 0;
+    $totalAppts = $patientStats['totalAppts'] ?? 0;
+    $totalLabs  = $patientStats['totalLabs']  ?? 0;
+    $lastCall   = $patientStats['lastCall']   ?? null;
+    $lastVisit  = $patientStats['lastVisit']  ?? null;
 @endphp
 
 <div class="pc-hero {{ $isDeceased ? 'deceased' : '' }}">

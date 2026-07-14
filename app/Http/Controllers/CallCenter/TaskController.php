@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CallCenter\Task;
 use App\Models\CallCenter\AgentDailyStat;
 use App\Models\User;
+use App\Services\CallCenter\CallCenterData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -26,7 +27,12 @@ class TaskController extends Controller
             ->orderByRaw("FIELD(priority,'high','medium','low')")
             ->paginate(25);
 
-        return view('callcenter.tasks.index', compact('tasks', 'tab', 'agent'));
+        // ★ FIX: Pass $stats and $agents that the blade view expects
+        $common = app(CallCenterData::class)->getCommonData();
+
+        return view('callcenter.tasks.index', array_merge(
+            compact('tasks', 'tab', 'agent'), $common
+        ));
     }
 
     public function store(Request $request)

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CallCenter\Task;
 use App\Models\PatientCallLog;
 use App\Models\User;
+use App\Services\CallCenter\CallCenterData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -54,9 +55,12 @@ class FollowUpController extends Controller
 
         $patients = $query->paginate(50)->withQueryString();
 
-        $agents = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent', 'supervisor']))->get(['id', 'name']);
+        // ★ FIX: Pass $stats and $agents that the blade view expects
+        $common = app(CallCenterData::class)->getCommonData();
 
-        return view('callcenter.followup.index', compact('patients', 'agents', 'agent'));
+        return view('callcenter.followup.index', array_merge(
+            compact('patients', 'agent'), $common
+        ));
     }
 
     /**

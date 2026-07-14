@@ -4,39 +4,22 @@ namespace App\Http\Controllers\CallCenter;
 
 use App\Http\Controllers\Controller;
 use App\Models\CallCenter\LetterLog;
+use App\Services\CallCenter\CallCenterData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class LetterLogController extends Controller
 {
-    /** Maps a letter status to its Blade pill CSS class. Keeps the view free of lookup logic. */
-    public const STATUS_PILL_CLASSES = [
-        'sent'      => 'fp-success',
-        'delivered' => 'fp-success',
-        'queued'    => 'fp-primary',
-        'printed'   => 'fp-info',
-        'pending'   => 'fp-warning',
-    ];
-
     public function index(Request $request)
     {
         $letters = LetterLog::with('patient', 'agent')
             ->when($request->status, fn($q, $v) => $q->where('status', $v))
-            ->latest()->paginate(30)
-            ->withQueryString();
+            ->latest()->paginate(30);
 
-        $stats = [
-            'total'   => LetterLog::count(),
-            'sent'    => LetterLog::whereIn('status', ['sent', 'delivered'])->count(),
-            'queued'  => LetterLog::where('status', 'queued')->count(),
-            'printed' => LetterLog::where('status', 'printed')->count(),
-        ];
+        // ★ FIX: Pass $stats and $agents that the blade view expects
+        $common = app(CallCenterData::class)->getCommonData();
 
-        return view('callcenter.letters.index', [
-            'letters' => $letters,
-            'stats' => $stats,
-            'statusPillClasses' => self::STATUS_PILL_CLASSES,
-        ]);
+        return view('callcenter.letters.index', array_merge(compact('letters'), $common));
     }
 
     public function store(Request $request)
@@ -58,7 +41,7 @@ class LetterLogController extends Controller
         ]));
 
         if ($request->ajax()) {
-            return response()->json(['success' => true, 'letter' => $letter]);
+            return response()->json(['success' => true, 'letter' => $letter, 'message' => 'Letter queued for print.']);
         }
 
         return back()->with('success', 'Letter queued for print.');

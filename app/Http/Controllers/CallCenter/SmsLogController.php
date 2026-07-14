@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CallCenter;
 use App\Http\Controllers\Controller;
 use App\Models\CallCenter\SmsLog;
 use App\Models\User;
+use App\Services\CallCenter\CallCenterData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -18,7 +19,10 @@ class SmsLogController extends Controller
             ->latest()
             ->paginate(30);
 
-        return view('callcenter.sms.index', compact('logs'));
+        // ★ FIX: Pass $stats and $agents that the blade view expects
+        $common = app(CallCenterData::class)->getCommonData();
+
+        return view('callcenter.sms.index', array_merge(compact('logs'), $common));
     }
 
     public function store(Request $request)

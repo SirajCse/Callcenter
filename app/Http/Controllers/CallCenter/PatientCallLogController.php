@@ -10,6 +10,7 @@ use App\Models\CallCenter\LetterLog;
 use App\Models\CallCenter\AgentDailyStat;
 use App\Models\User;
 use App\Services\CallCenter\DialService;
+use App\Services\CallCenter\CallCenterData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +33,12 @@ class PatientCallLogController extends Controller
             ->latest('call_date')
             ->paginate(25);
 
-        return view('callcenter.calllogs.index', compact('logs', 'agent'));
+        // ★ FIX: Pass $stats and $agents that the blade view expects
+        $common = app(CallCenterData::class)->getCommonData();
+
+        return view('callcenter.calllogs.index', array_merge(
+            compact('logs', 'agent'), $common
+        ));
     }
 
     /**

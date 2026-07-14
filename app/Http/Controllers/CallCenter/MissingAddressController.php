@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CallCenter;
 use App\Http\Controllers\Controller;
 use App\Models\CallCenter\MissingAddress;
 use App\Models\User;
+use App\Services\CallCenter\CallCenterData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,7 +15,10 @@ class MissingAddressController extends Controller
     {
         $records = MissingAddress::with('patient')->latest()->paginate(30);
 
-        return view('callcenter.missing_address.index', compact('records'));
+        // ★ FIX: Pass $stats and $agents that the blade view expects
+        $common = app(CallCenterData::class)->getCommonData();
+
+        return view('callcenter.missing_address.index', array_merge(compact('records'), $common));
     }
 
     public function store(Request $request)
