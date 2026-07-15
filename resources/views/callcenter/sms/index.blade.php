@@ -8,35 +8,14 @@
 @section('content')
 <div class="fade-in">
 
-  {{-- Module Header --}}
-  <div class="module-head">
-    <h2><i class="fas fa-comment-alt"></i> SMS Log</h2>
-    <button class="btn-frest info sm" data-toggle="modal" data-target="#modalSms">
-      <i class="fas fa-plus"></i> Send SMS
-    </button>
-  </div>
-
-  {{-- Stat Cards --}}
-  <div class="stat-row">
-    <div class="cc-stat-card primary">
-      <div class="sc-icon"><i class="fas fa-comment-alt"></i></div>
-      <div class="sc-num">{{ $stats['total'] }}</div>
-      <div class="sc-label">Total SMS</div>
-    </div>
-    <div class="cc-stat-card success">
-      <div class="sc-icon"><i class="fas fa-check-circle"></i></div>
-      <div class="sc-num">{{ $stats['sent'] }}</div>
-      <div class="sc-label">Sent</div>
-    </div>
-    <div class="cc-stat-card danger">
-      <div class="sc-icon"><i class="fas fa-times-circle"></i></div>
-      <div class="sc-num">{{ $stats['failed'] }}</div>
-      <div class="sc-label">Failed</div>
-    </div>
-    <div class="cc-stat-card warning">
-      <div class="sc-icon"><i class="fas fa-clock"></i></div>
-      <div class="sc-num">{{ $stats['pending'] }}</div>
-      <div class="sc-label">Pending</div>
+  {{-- ★ Compact Topbar: KPI chips + actions (saves vertical space) --}}
+  <div class="cc-topbar">
+    <div class="kpi-chip primary"><span class="kn">{{ $stats['total'] ?? 0 }}</span> Total SMS</div>
+    <div class="kpi-chip success"><span class="kn">{{ $stats['sent'] ?? 0 }}</span> Sent</div>
+    <div class="kpi-chip danger"><span class="kn">{{ $stats['failed'] ?? 0 }}</span> Failed</div>
+    <div class="kpi-chip warning"><span class="kn">{{ $stats['pending'] ?? 0 }}</span> Pending</div>
+    <div class="cc-actions">
+      <button class="btn-frest info sm" data-toggle="modal" data-target="#modalSms"><i class="fas fa-plus"></i> Send SMS</button>
     </div>
   </div>
 

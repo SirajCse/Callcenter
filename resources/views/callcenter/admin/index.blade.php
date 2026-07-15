@@ -11,7 +11,7 @@
         <h2><i class="fas fa-crown text-warning"></i> Call Center Admin</h2>
         <div class="d-flex gap-2 align-items-center">
             <span class="badge badge-primary"><i class="fas fa-users"></i> {{ $agents->count() }} Agents</span>
-            <span class="badge badge-success"><i class="fas fa-circle" style="font-size:8px"></i> {{ $kpi['online_agents'] }} Online</span>
+            <span class="badge badge-success"><i class="fas fa-circle" style="font-size:8px"></i> {{ $kpi['online_agents'] ?? 0 }} Online</span>
         </div>
     </div>
 
@@ -20,32 +20,32 @@
         <div class="kpi-card">
             <div class="kpi-icon bg-primary-light"><i class="fas fa-users"></i></div>
             <div>
-                <div class="kpi-value">{{ $kpi['total_agents'] }}</div>
+                <div class="kpi-value">{{ $kpi['total_agents'] ?? 0 }}</div>
                 <div class="kpi-label">Total Agents</div>
             </div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon bg-warning-light"><i class="fas fa-tasks"></i></div>
             <div>
-                <div class="kpi-value">{{ $kpi['tasks_today'] }}</div>
+                <div class="kpi-value">{{ $kpi['tasks_today'] ?? 0 }}</div>
                 <div class="kpi-label">Tasks Today</div>
-                <small class="text-muted">{{ $kpi['pending_tasks'] }} pending</small>
+                <small class="text-muted">{{ $kpi['pending_tasks'] ?? 0 }} pending</small>
             </div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon bg-success-light"><i class="fas fa-check-circle"></i></div>
             <div>
-                <div class="kpi-value">{{ $kpi['completed_today'] }}</div>
+                <div class="kpi-value">{{ $kpi['completed_today'] ?? 0 }}</div>
                 <div class="kpi-label">Completed Today</div>
             </div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon bg-danger-light"><i class="fas fa-clock"></i></div>
             <div>
-                <div class="kpi-value">{{ $kpi['overdue_tasks'] }}</div>
+                <div class="kpi-value">{{ $kpi['overdue_tasks'] ?? 0 }}</div>
                 <div class="kpi-label">Overdue Tasks</div>
-                <small class="{{ $kpi['overdue_tasks'] > 0 ? 'text-danger' : 'text-success' }}">
-                    {{ $kpi['overdue_tasks'] > 0 ? '⚠️ Needs attention' : '✓ All good' }}
+                <small class="{{ ($kpi['overdue_tasks'] ?? 0) > 0 ? 'text-danger' : 'text-success' }}">
+                    {{ ($kpi['overdue_tasks'] ?? 0) > 0 ? '⚠️ Needs attention' : '✓ All good' }}
                 </small>
             </div>
         </div>
@@ -62,7 +62,7 @@
         </button>
         <button class="adm-tab" data-tab="monitor">
             <i class="fas fa-satellite-dish"></i> Live Monitor
-            <span class="badge-pill bg-success">{{ $kpi['online_agents'] }}</span>
+            <span class="badge-pill bg-success">{{ $kpi['online_agents'] ?? 0 }}</span>
         </button>
     </div>
 
@@ -263,23 +263,23 @@
             </div>
             <div class="card-body">
                 {{-- Rank + colour classes computed in AdminCallCenterController@index --}}
-                @forelse($rankedStats as $stat)
+                @forelse($rankedStats ?? [] as $stat)
                     @php($successRate = $stat->success_rate ?? 0)
-                    <div class="agent-rank-card {{ $stat->rank_border_class }}">
+                    <div class="agent-rank-card {{ $stat->rank_border_class ?? '' }}">
                         <div class="agent-avatar">{{ strtoupper(substr($stat->agent?->name ?? '?', 0, 2)) }}</div>
                         <div class="agent-info">
                             <div class="d-flex align-items-center justify-content-between">
                                 <span class="agent-name">{{ $stat->agent?->name ?? '—' }}</span>
-                                <span class="agent-rank-badge {{ $stat->rank_badge_class }}">#{{ $stat->rank }} {{ $stat->rank_medal }}</span>
+                                <span class="agent-rank-badge {{ $stat->rank_badge_class ?? '' }}">#{{ $stat->rank ?? 0 }} {{ $stat->rank_medal ?? '' }}</span>
                             </div>
                             <div class="progress-sm">
-                                <div class="fill" style="width:{{ min(100, $successRate) }}%;background:{{ $stat->success_rate_color }}"></div>
+                                <div class="fill" style="width:{{ min(100, $successRate) }}%;background:{{ $stat->success_rate_color ?? 'var(--cc-primary)' }}"></div>
                             </div>
                         </div>
                         <div class="agent-stats">
-                            <div class="agent-stat"><div class="value">{{ $stat->total_calls }}</div><div class="label">Calls</div></div>
-                            <div class="agent-stat"><div class="value text-success">{{ $stat->completed_tasks }}</div><div class="label">Done</div></div>
-                            <div class="agent-stat"><div class="value text-warning">{{ $stat->transferred_tasks }}</div><div class="label">Xfer</div></div>
+                            <div class="agent-stat"><div class="value">{{ $stat->total_calls ?? 0 }}</div><div class="label">Calls</div></div>
+                            <div class="agent-stat"><div class="value text-success">{{ $stat->completed_tasks ?? 0 }}</div><div class="label">Done</div></div>
+                            <div class="agent-stat"><div class="value text-warning">{{ $stat->transferred_tasks ?? 0 }}</div><div class="label">Xfer</div></div>
                             <div class="agent-stat"><div class="value">{{ number_format($successRate, 1) }}%</div><div class="label">Success</div></div>
                         </div>
                     </div>
@@ -332,13 +332,13 @@
                             </td>
                             <td><span class="font-weight-bold text-primary">{{ $ag->day_stat?->total_calls ?? 0 }}</span></td>
                             <td><span class="font-weight-bold text-success">{{ $ag->day_stat?->completed_tasks ?? 0 }}</span></td>
-                            <td><span class="font-weight-bold text-warning">{{ $ag->pending_tasks }}</span></td>
+                            <td><span class="font-weight-bold text-warning">{{ $ag->pending_tasks ?? 0 }}</span></td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="progress-sm" style="width:70px;margin:0">
-                                        <div class="fill" style="width:{{ $ag->success_rate }}%;background:{{ $ag->success_rate_color }}"></div>
+                                        <div class="fill" style="width:{{ min(100, $ag->success_rate ?? 0) }}%;background:{{ $ag->success_rate_color ?? 'var(--cc-primary)' }}"></div>
                                     </div>
-                                    <span class="small text-muted">{{ number_format($ag->success_rate, 1) }}%</span>
+                                    <span class="small text-muted">{{ number_format($ag->success_rate ?? 0, 1) }}%</span>
                                 </div>
                             </td>
                         </tr>

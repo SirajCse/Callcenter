@@ -8,33 +8,14 @@
 @section('content')
 <div class="fade-in">
 
-  {{-- Module Header --}}
-  <div class="module-head">
-    <h2><i class="fas fa-map-marker-alt"></i> Missing Address</h2>
-    <span class="fpill fp-danger" style="font-size:12px;padding:5px 12px">{{ $records->total() }} records</span>
-  </div>
-
-  {{-- Stat Cards --}}
-  <div class="stat-row">
-    <div class="cc-stat-card primary">
-      <div class="sc-icon"><i class="fas fa-map-marker-alt"></i></div>
-      <div class="sc-num">{{ $stats['total'] }}</div>
-      <div class="sc-label">Total Records</div>
-    </div>
-    <div class="cc-stat-card danger">
-      <div class="sc-icon"><i class="fas fa-clock"></i></div>
-      <div class="sc-num">{{ $stats['pending'] }}</div>
-      <div class="sc-label">Pending</div>
-    </div>
-    <div class="cc-stat-card warning">
-      <div class="sc-icon"><i class="fas fa-envelope"></i></div>
-      <div class="sc-num">{{ $stats['awaiting'] }}</div>
-      <div class="sc-label">Letter Sent / Awaiting</div>
-    </div>
-    <div class="cc-stat-card success">
-      <div class="sc-icon"><i class="fas fa-check-circle"></i></div>
-      <div class="sc-num">{{ $stats['resolved'] }}</div>
-      <div class="sc-label">Resolved</div>
+  {{-- ★ Compact Topbar: KPI chips + actions (saves vertical space) --}}
+  <div class="cc-topbar">
+    <div class="kpi-chip primary"><span class="kn">{{ $stats['total'] ?? 0 }}</span> Total Records</div>
+    <div class="kpi-chip danger"><span class="kn">{{ $stats['pending'] ?? 0 }}</span> Pending</div>
+    <div class="kpi-chip warning"><span class="kn">{{ $stats['awaiting'] ?? 0 }}</span> Awaiting</div>
+    <div class="kpi-chip success"><span class="kn">{{ $stats['resolved'] ?? 0 }}</span> Resolved</div>
+    <div class="cc-actions">
+      <span class="fpill fp-danger" style="font-size:12px;padding:5px 12px">{{ $records->total() }} records</span>
     </div>
   </div>
 

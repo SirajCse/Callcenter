@@ -8,6 +8,7 @@ use App\Http\Controllers\CallCenter\SmsLogController;
 use App\Http\Controllers\CallCenter\LetterLogController;
 use App\Http\Controllers\CallCenter\MissingAddressController;
 use App\Http\Controllers\CallCenter\Admin\AdminCallCenterController;
+use App\Http\Controllers\CallCenter\AgentCallController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -37,6 +38,9 @@ Route::middleware(['auth'])->prefix('callcenter')->name('callcenter.')->group(fu
     Route::get('/patient/{id}',                 [CallBoardController::class, 'patient'])->name('patient');
     Route::get('/my-calls',                     [CallBoardController::class, 'myCalls'])->name('mycalls');
     Route::get('/my-stats',                     [CallBoardController::class, 'myStats'])->name('mystats');
+
+    // ── ★ NEW: Agent PBX Call Log (from mikopbx_call_logs) ──────
+    Route::get('/agent-calls',                  [AgentCallController::class, 'index'])->name('agent-calls.index');
 
     // ── Auto-Dial (MikoPBX) ──────────────────────────────────────
     Route::post('/dial',                        [CallBoardController::class, 'dialPatient'])->name('dial');

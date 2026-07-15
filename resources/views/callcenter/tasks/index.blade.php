@@ -8,52 +8,21 @@
 @section('content')
 <div class="fade-in">
 
-  {{-- Module Header --}}
-  <div class="module-head">
-    <h2><i class="fas fa-tasks"></i> My Tasks</h2>
-    <div style="display:flex;gap:6px">
+  {{-- ★ Compact Topbar: KPI chips + actions (saves vertical space) --}}
+  <div class="cc-topbar">
+    <div class="kpi-chip warning" onclick="switchTab('pending')"><span class="kn">{{ $stats['pending'] ?? 0 }}</span> Pending</div>
+    <div class="kpi-chip success" onclick="switchTab('completed')"><span class="kn">{{ $stats['completed'] ?? 0 }}</span> Completed</div>
+    <div class="kpi-chip info" onclick="switchTab('transferred')"><span class="kn">{{ $stats['transferred'] ?? 0 }}</span> Transferred</div>
+    <div class="kpi-chip primary" onclick="switchTab('pinned')"><span class="kn">{{ $stats['pinned'] ?? 0 }}</span> Pinned</div>
+    <div class="kpi-chip danger" onclick="switchTab('priority')"><span class="kn">{{ $stats['priority'] ?? 0 }}</span> High Priority</div>
+    @if(($stats['overdue'] ?? 0) > 0)
+    <div class="kpi-chip danger" onclick="switchTab('pending')"><span class="kn">{{ $stats['overdue'] ?? 0 }}</span> Overdue</div>
+    @endif
+    <div class="cc-actions">
       <a href="{{ route('callcenter.board') }}" class="btn-frest outline sm"><i class="fas fa-arrow-left"></i> Board</a>
       <button class="btn-frest primary sm" data-toggle="modal" data-target="#modalNewTask"><i class="fas fa-plus"></i> New Task</button>
     </div>
   </div>
-
-  {{-- Stat Cards (computed in TaskController@index) --}}
-  <div class="stat-row">
-    <div class="cc-stat-card warning" onclick="switchTab('pending')">
-      <div class="sc-icon"><i class="fas fa-clock"></i></div>
-      <div class="sc-num">{{ $stats['pending'] }}</div>
-      <div class="sc-label">Pending</div>
-    </div>
-    <div class="cc-stat-card success" onclick="switchTab('completed')">
-      <div class="sc-icon"><i class="fas fa-check-circle"></i></div>
-      <div class="sc-num">{{ $stats['completed'] }}</div>
-      <div class="sc-label">Completed</div>
-    </div>
-    <div class="cc-stat-card info" onclick="switchTab('transferred')">
-      <div class="sc-icon"><i class="fas fa-exchange-alt"></i></div>
-      <div class="sc-num">{{ $stats['transferred'] }}</div>
-      <div class="sc-label">Transferred</div>
-    </div>
-    <div class="cc-stat-card primary" onclick="switchTab('pinned')">
-      <div class="sc-icon"><i class="fas fa-thumbtack"></i></div>
-      <div class="sc-num">{{ $stats['pinned'] }}</div>
-      <div class="sc-label">Pinned</div>
-    </div>
-    <div class="cc-stat-card danger" onclick="switchTab('priority')">
-      <div class="sc-icon"><i class="fas fa-exclamation-triangle"></i></div>
-      <div class="sc-num">{{ $stats['priority'] }}</div>
-      <div class="sc-label">High Priority</div>
-    </div>
-  </div>
-
-  {{-- Overdue alert --}}
-  @if($stats['overdue'] > 0)
-  <div style="background:var(--cc-danger-light);border:1px solid rgba(255,91,91,.2);border-radius:var(--cc-r2);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--cc-danger);display:flex;align-items:center;gap:8px">
-    <i class="fas fa-exclamation-circle"></i>
-    <strong>{{ $stats['overdue'] }} overdue task(s)</strong> — past their due date and still pending.
-    <a href="{{ route('callcenter.tasks.index', ['tab'=>'pending']) }}" style="color:var(--cc-danger);text-decoration:underline;margin-left:4px">View all pending</a>
-  </div>
-  @endif
 
   {{-- Main Card --}}
   <div class="fcard">
@@ -87,7 +56,8 @@
           </thead>
           <tbody>
             @forelse($tasks as $task)
-            <tr class="{{ $task->is_overdue ? 'overdue-row' : '' }}">
+            @php($isOverdue = $task->due_date && $task->due_date < today() && $task->status === "pending")
+            <tr class="{{ $isOverdue ? 'overdue-row' : '' }}">
               <td style="color:var(--cc-text-muted)">{{ $loop->iteration }}</td>
               <td>
                 <div style="display:flex;align-items:flex-start;gap:6px">
@@ -124,10 +94,10 @@
               </td>
               <td>
                 @if($task->due_date)
-                  <span style="font-size:12px;color:{{ $task->is_overdue ? 'var(--cc-danger)' : 'var(--cc-text-muted)' }};font-weight:{{ $task->is_overdue ? '600' : '400' }}">
+                  <span style="font-size:12px;color:{{ $isOverdue ? 'var(--cc-danger)' : 'var(--cc-text-muted)' }};font-weight:{{ $isOverdue ? '600' : '400' }}">
                     {{ $task->due_date->format('d M Y') }}
                   </span>
-                  @if($task->is_overdue)
+                  @if($isOverdue)
                   <div style="font-size:10px;color:var(--cc-danger)"><i class="fas fa-exclamation-circle"></i> Overdue</div>
                   @endif
                 @else

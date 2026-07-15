@@ -159,10 +159,89 @@ class AdminCallCenterController extends Controller
     public function monitor()
     {
         $agents = User::whereHas('roles', fn($q) => $q->whereIn('name', ['agent','supervisor']))
-            ->with(['currentTask' => fn($q) => $q->pending()->latest()])->get();
+            ->with(['currentTask' => fn($q) => $q->pending()->latest()])
+            ->with(['dailyStats' => fn($q) => $q->where('stat_date', today())])
+            ->get();
+
         $kpi = $this->kpi();
 
-        return view('callcenter.admin.monitor', compact('agents', 'kpi'));
+        // ★ Compute rank + color properties for each agent (same as index())
+        $agents = $agents->sortByDesc(fn($a) => $a->dailyStats->first()?->success_rate ?? 0)->values()->map(function ($ag, $index) {
+            $stat = $ag->dailyStats->first();
+            $rank = $index + 1;
+            $rate = $stat?->success_rate ?? 0;
+
+            $ag->rank = $rank;
+            $ag->total_calls = $stat?->total_calls ?? 0;
+            $ag->completed_tasks = $stat?->completed_tasks ?? 0;
+            $ag->transferred_tasks = $stat?->transferred_tasks ?? 0;
+            $ag->pending_tasks = \App\Models\CallCenter\Task::forAgent($ag->id)->pending()->count();
+            $ag->success_rate = $rate;
+
+            if ($rate >= 80) {
+                $ag->success_rate_color = 'var(--cc-success, #39da8a)';
+            } elseif ($rate >= 60) {
+                $ag->success_rate_color = 'var(--cc-warning, #fdac41)';
+            } else {
+                $ag->success_rate_color = 'var(--cc-danger, #ff5b5b)';
+            }
+
+            return $ag;
+        });
+
+        // ★ Fetch MikoPBX data directly from the package services (Frest-styled, no Livewire needed)
+        $pbxAgents = collect();
+        $activeCalls = [];
+        $activeCallCount = 0;
+        $health = ['overall' => 'unknown', 'ami' => 'unknown', 'rest' => 'unknown', 'sip' => 'unknown'];
+        $pbxConfig = [
+            'url' => config('mikopbx.url', '—'),
+            'ami_host' => config('mikopbx.ami.host', '—'),
+            'ami_port' => config('mikopbx.ami.port', '—'),
+        ];
+
+        // ★ Fetch PBX agents (extensions with live status from AMI)
+        try {
+            if (class_exists(\BitDreamIT\MikoPBX\Services\AgentService::class)) {
+                $pbxAgents = app(\BitDreamIT\MikoPBX\Services\AgentService::class)->all();
+            }
+        } catch (\Throwable $e) {
+            // PBX offline — $pbxAgents stays empty
+        }
+
+        // ★ Fetch active calls from REST API
+        try {
+            if (class_exists(\BitDreamIT\MikoPBX\Services\RestApiService::class)) {
+                $api = app(\BitDreamIT\MikoPBX\Services\RestApiService::class);
+                $response = $api->getActiveCalls();
+                $activeCalls = $response['data'] ?? [];
+                if (is_array($activeCalls) && !array_is_list($activeCalls)) {
+                    $activeCalls = array_values($activeCalls);
+                }
+                $activeCallCount = count($activeCalls);
+                $health['rest'] = 'ok';
+            }
+        } catch (\Throwable $e) {
+            $health['rest'] = 'fail';
+        }
+
+        // ★ Fetch health status from HealthCheckService
+        // check() returns: ['amiOk'=>bool, 'ariOk'=>bool, 'sipOk'=>bool, 'calls'=>int, 'online'=>int, 'status'=>'healthy'|'degraded'|'critical']
+        try {
+            if (class_exists(\BitDreamIT\MikoPBX\Services\HealthCheckService::class)) {
+                $healthResult = app(\BitDreamIT\MikoPBX\Services\HealthCheckService::class)->check();
+                $health['ami']     = ($healthResult['amiOk'] ?? false) ? 'ok' : 'fail';
+                $health['rest']    = ($healthResult['ariOk'] ?? false) ? 'ok' : 'fail';
+                $health['sip']     = ($healthResult['sipOk'] ?? false) ? 'ok' : 'fail';
+                $health['overall'] = $healthResult['status'] ?? 'unknown';
+            }
+        } catch (\Throwable $e) {
+            // Health check failed — keep defaults
+        }
+
+        $kpi['active_calls'] = $activeCallCount;
+
+        return view('callcenter.admin.monitor', compact('agents', 'kpi', 'activeCallCount', 'activeCalls', 'pbxAgents', 'health', 'pbxConfig'));
     }
 
     public function performance(Request $request)
@@ -179,6 +258,42 @@ class AdminCallCenterController extends Controller
                 DB::raw('AVG(success_rate) as avg_success_rate')
             )
             ->groupBy('agent_id')->orderByDesc('total_calls')->get();
+
+        // ★ Compute rank + color properties (same logic as rankedStats in index())
+        $stats = $stats->values()->map(function ($stat, $index) {
+            $rank = $index + 1;
+            $rate = $stat->avg_success_rate ?? 0;
+
+            $stat->rank = $rank;
+
+            if ($rank === 1) {
+                $stat->rank_border_class = 'border-warning';
+                $stat->rank_badge_class = 'badge-warning';
+                $stat->rank_medal = '🥇';
+            } elseif ($rank === 2) {
+                $stat->rank_border_class = 'border-secondary';
+                $stat->rank_badge_class = 'badge-secondary';
+                $stat->rank_medal = '🥈';
+            } elseif ($rank === 3) {
+                $stat->rank_border_class = 'border-info';
+                $stat->rank_badge_class = 'badge-info';
+                $stat->rank_medal = '🥉';
+            } else {
+                $stat->rank_border_class = 'border-light';
+                $stat->rank_badge_class = 'badge-light';
+                $stat->rank_medal = '';
+            }
+
+            if ($rate >= 80) {
+                $stat->success_rate_color = 'var(--cc-success, #39da8a)';
+            } elseif ($rate >= 60) {
+                $stat->success_rate_color = 'var(--cc-warning, #fdac41)';
+            } else {
+                $stat->success_rate_color = 'var(--cc-danger, #ff5b5b)';
+            }
+
+            return $stat;
+        });
 
         return view('callcenter.admin.performance', compact('stats', 'from', 'to'));
     }

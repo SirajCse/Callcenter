@@ -80,7 +80,12 @@ class CallCenterData
             else $noPhone++;
         }
 
-        return compact('total', 'notCalled', 'withPhone', 'noPhone');
+        return [
+            'total'      => $total,
+            'not_called' => $notCalled,
+            'with_phone' => $withPhone,
+            'no_phone'   => $noPhone,
+        ];
     }
 
     /**

@@ -33,6 +33,19 @@ class TaskController extends Controller
         // ★ $transferAgents for the transfer dropdown
         $transferAgents = $ccData->agents($agent->id);
 
+        // ★ $priorityPillClasses + $statusPillClasses (used by blade for pill colors)
+        $priorityPillClasses = [
+            'high'   => 'fp-danger',
+            'medium' => 'fp-warning',
+            'low'    => 'fp-success',
+        ];
+        $statusPillClasses = [
+            'pending'     => 'fp-warning',
+            'completed'   => 'fp-success',
+            'transferred' => 'fp-info',
+            'cancelled'   => 'fp-secondary',
+        ];
+
         $tasks = Task::with('patient', 'agent', 'transferredTo')
             ->forAgent($agent->id)
             ->when($tab === 'pending',     fn($q) => $q->pending())
@@ -43,7 +56,7 @@ class TaskController extends Controller
             ->orderByRaw("FIELD(priority,'high','medium','low')")
             ->paginate(25);
 
-        return view('callcenter.tasks.index', compact('tasks', 'tab', 'agent', 'stats', 'tabs', 'transferAgents'));
+        return view('callcenter.tasks.index', compact('tasks', 'tab', 'agent', 'stats', 'tabs', 'transferAgents', 'priorityPillClasses', 'statusPillClasses'));
     }
 
     public function store(Request $request)

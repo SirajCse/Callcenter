@@ -8,33 +8,14 @@
 @section('content')
 <div class="fade-in">
 
-  {{-- Module Header --}}
-  <div class="module-head">
-    <h2><i class="fas fa-phone-alt"></i> My Call Logs</h2>
-    <a href="{{ route('callcenter.board') }}" class="btn-frest outline sm"><i class="fas fa-arrow-left"></i> Board</a>
-  </div>
-
-  {{-- Stat Cards (computed in PatientCallLogController@index) --}}
-  <div class="stat-row">
-    <div class="cc-stat-card primary">
-      <div class="sc-icon"><i class="fas fa-phone-alt"></i></div>
-      <div class="sc-num">{{ $stats['total'] }}</div>
-      <div class="sc-label">Total Calls</div>
-    </div>
-    <div class="cc-stat-card success">
-      <div class="sc-icon"><i class="fas fa-phone-volume"></i></div>
-      <div class="sc-num">{{ $stats['answered'] }}</div>
-      <div class="sc-label">Answered</div>
-    </div>
-    <div class="cc-stat-card danger">
-      <div class="sc-icon"><i class="fas fa-phone-slash"></i></div>
-      <div class="sc-num">{{ $stats['no_answer'] }}</div>
-      <div class="sc-label">No Answer</div>
-    </div>
-    <div class="cc-stat-card warning">
-      <div class="sc-icon"><i class="fas fa-calendar-day"></i></div>
-      <div class="sc-num">{{ $stats['today'] }}</div>
-      <div class="sc-label">Today</div>
+  {{-- ★ Compact Topbar: KPI chips + actions (saves vertical space) --}}
+  <div class="cc-topbar">
+    <div class="kpi-chip primary"><span class="kn">{{ $stats['total'] ?? 0 }}</span> Total Calls</div>
+    <div class="kpi-chip success"><span class="kn">{{ $stats['answered'] ?? 0 }}</span> Answered</div>
+    <div class="kpi-chip danger"><span class="kn">{{ $stats['no_answer'] ?? 0 }}</span> No Answer</div>
+    <div class="kpi-chip warning"><span class="kn">{{ $stats['today'] ?? 0 }}</span> Today</div>
+    <div class="cc-actions">
+      <a href="{{ route('callcenter.board') }}" class="btn-frest outline sm"><i class="fas fa-arrow-left"></i> Board</a>
     </div>
   </div>
 

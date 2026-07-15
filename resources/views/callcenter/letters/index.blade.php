@@ -8,35 +8,14 @@
 @section('content')
 <div class="fade-in">
 
-  {{-- Module Header --}}
-  <div class="module-head">
-    <h2><i class="fas fa-envelope"></i> Letter Log</h2>
-    <button class="btn-frest warning sm" data-toggle="modal" data-target="#modalLetter">
-      <i class="fas fa-plus"></i> New Letter
-    </button>
-  </div>
-
-  {{-- Stat Cards --}}
-  <div class="stat-row">
-    <div class="cc-stat-card primary">
-      <div class="sc-icon"><i class="fas fa-envelope"></i></div>
-      <div class="sc-num">{{ $stats['total'] }}</div>
-      <div class="sc-label">Total Letters</div>
-    </div>
-    <div class="cc-stat-card success">
-      <div class="sc-icon"><i class="fas fa-check-circle"></i></div>
-      <div class="sc-num">{{ $stats['sent'] }}</div>
-      <div class="sc-label">Sent / Delivered</div>
-    </div>
-    <div class="cc-stat-card warning">
-      <div class="sc-icon"><i class="fas fa-clock"></i></div>
-      <div class="sc-num">{{ $stats['queued'] }}</div>
-      <div class="sc-label">Queued</div>
-    </div>
-    <div class="cc-stat-card info">
-      <div class="sc-icon"><i class="fas fa-print"></i></div>
-      <div class="sc-num">{{ $stats['printed'] }}</div>
-      <div class="sc-label">Printed</div>
+  {{-- ★ Compact Topbar: KPI chips + actions (saves vertical space) --}}
+  <div class="cc-topbar">
+    <div class="kpi-chip primary"><span class="kn">{{ $stats['total'] ?? 0 }}</span> Total Letters</div>
+    <div class="kpi-chip success"><span class="kn">{{ $stats['sent'] ?? 0 }}</span> Sent</div>
+    <div class="kpi-chip warning"><span class="kn">{{ $stats['queued'] ?? 0 }}</span> Queued</div>
+    <div class="kpi-chip info"><span class="kn">{{ $stats['printed'] ?? 0 }}</span> Printed</div>
+    <div class="cc-actions">
+      <button class="btn-frest warning sm" data-toggle="modal" data-target="#modalLetter"><i class="fas fa-plus"></i> New Letter</button>
     </div>
   </div>
 
